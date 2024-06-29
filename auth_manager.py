@@ -2,15 +2,16 @@ from utils import record_audio, transcribe_audio, synthesize_audio, play_audio, 
 from value_extractor import get_value
 from db_connection import db_connection, close_db_connection
 from datetime import datetime
+from user_data import UserData
 
 class Authmanager:
     _instance = None
-    user_data = {}
     
     def __new__ (cls, connection=None):
         if cls._instance is None:
             cls._instance = super(Authmanager, cls).__new__(cls)
             cls._instance.connection = connection
+            cls._instance.user_data = UserData()
         return cls._instance     
     
     def are_strings_similar(self, string1, string2, threshold=0.8):
@@ -58,8 +59,8 @@ class Authmanager:
             attempts = 3
             while attempts > 0:
                 # Dynamically set the prompt for the security question
-                if step["variable"] == "security_answer" and "security_question" in self.user_data:
-                    step["prompt"] = f"What is the answer to your security question: {self.user_data['security_question']}?"
+                if step["variable"] == "security_answer" and self.user_data.get_data("security_question"):
+                    step["prompt"] = f"What is the answer to your security question: {self.user_data.get_data('security_question')}?"
                     
                 response_value = self.prompt_and_listen(step["prompt"], step["variable"], step["semantic_description"])
                 if step["auth_function"](response_value):
@@ -82,8 +83,8 @@ class Authmanager:
         account = cursor.fetchone()
         # Replace with actual DB lookup
         if account:
-            self.user_data["account_number"] = account_number
-            self.user_data["customer_id"] = account["customerid"]
+            self.user_data.set_data("account_number", account_number)
+            self.user_data.set_data("customer_id", account["customerid"])
             self.fetch_security_question()
             return True
         return False
@@ -91,38 +92,38 @@ class Authmanager:
     def fetch_security_question(self):
         cursor = self.connection.cursor(dictionary=True)
         query = "SELECT security_question, security_answer FROM pba_customer WHERE customerid = %s"
-        cursor.execute(query, (self.user_data["customer_id"],))
+        cursor.execute(query, (self.user_data.get_data("customer_id"),))
         customer = cursor.fetchone()
         if customer:
-            self.user_data["security_question"] = customer["security_question"]
-            self.user_data["expected_security_answer"] = customer["security_answer"]
+            self.user_data.set_data("security_question", customer["security_question"])
+            self.user_data.set_data("expected_security_answer", customer["security_answer"])
             
     def authenticate_name(self, name):
-        if "customer_id" not in self.user_data:
+        if not self.user_data.get_data("customer_id"):
             return False
         
         cursor = self.connection.cursor(dictionary=True)
         query = "SELECT cfname, clname FROM pba_customer WHERE customerid = %s"
-        cursor.execute(query, (self.user_data["customer_id"],))
+        cursor.execute(query, (self.user_data.get_data("customer_id"),))
         customer = cursor.fetchone()
         if not customer:
             return False
         
         mapped_name = f"{customer['cfname']} {customer['clname']}"
         if self.are_strings_similar(name, mapped_name):
-            self.user_data["name"] = mapped_name
+            self.user_data.set_data("name", mapped_name)
             return True
         
         return False
 
 
     def authenticate_dob(self, dob):
-        if "customer_id" not in self.user_data:
+        if not self.user_data.get_data("customer_id"):
             return False
         
         cursor = self.connection.cursor(dictionary=True)
         query = "SELECT date_of_birth FROM pba_customer WHERE customerid = %s"
-        cursor.execute(query, (self.user_data["customer_id"],))
+        cursor.execute(query, (self.user_data.get_data("customer_id"),))
         customer = cursor.fetchone()
         
         if customer:
@@ -132,7 +133,7 @@ class Authmanager:
             try:
                 dob_input = datetime.strptime(dob, '%Y-%m-%d').date()
                 if dob_input == dob_database:
-                    self.user_data["dob"] = dob
+                    self.user_data.set_data("dob", dob)
                     return True
             except ValueError:
                 print("Invalid date format provided.")
@@ -141,11 +142,11 @@ class Authmanager:
     
     def authenticate_security_answer(self, security_answer):
         
-        if "customer_id" not in self.user_data:
+        if not self.user_data.get_data("customer_id"):
             return False
         
-        if self.are_strings_similar(security_answer, self.user_data["expected_security_answer"], 0.5):
-            self.user_data["security_answer"] = security_answer
+        if self.are_strings_similar(security_answer, self.user_data.get_data("expected_security_answer"), 0.5):
+            self.user_data.set_data("security_answer", security_answer)
             return True
         
         return False
@@ -153,12 +154,11 @@ class Authmanager:
        
 
     def is_authenticated(self):
-        print("user data: ", self.user_data)
         required_keys = ["account_number", "name", "dob", "security_answer"]
-        return all(key in self.user_data for key in required_keys)
+        return all(key in self.user_data.all_data() for key in required_keys)
 
     def clear_session(self):
-        self.user_data = {}
+        self.user_data.clear_data()
         
     def get_user_data(self):
-        return self.user_data
+        return self.user_data.all_data()

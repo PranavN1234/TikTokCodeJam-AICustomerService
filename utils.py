@@ -2,16 +2,26 @@ import speech_recognition as sr
 import pygame
 import time
 import openai
+from difflib import SequenceMatcher
 
+
+def calculate_similarity(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
 def record_audio(file_path):
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
         print("Please say something...")
-        audio_data = recognizer.listen(source)
-        print("Recording complete.")
-        with open(file_path, "wb") as audio_file:
-            audio_file.write(audio_data.get_wav_data())
+        recognizer.adjust_for_ambient_noise(source, duration=1)
+        try:
+            audio_data = recognizer.listen(source, timeout=10, phrase_time_limit=10)
+            print("Recording complete.")
+            with open(file_path, "wb") as audio_file:
+                audio_file.write(audio_data.get_wav_data())
+        except sr.WaitTimeoutError:
+            print("Listening timed out while waiting for phrase to start.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
 def play_audio(file_path):
     pygame.mixer.init()

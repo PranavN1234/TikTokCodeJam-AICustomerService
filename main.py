@@ -4,6 +4,7 @@ from tasks.map_to_task import map_to_route
 from ai_service import ai_response
 from auth_manager import Authmanager
 from db_connection import db_connection, close_db_connection
+from user_data import UserData
 
 def prompt_and_listen(prompt_text):
     synthesize_audio(prompt_text)
@@ -26,6 +27,8 @@ def main():
     if authenticated:
         synthesize_audio("Authentication successful. Welcome to Chase Bank. I am Jessica your AI Assistant. How can I assist you today?")
         play_audio('output.mp3')
+        user_data = UserData()
+        print("user data: ", user_data.all_data())
     
     
     # while True:

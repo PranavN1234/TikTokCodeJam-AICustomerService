@@ -1,5 +1,6 @@
 from taskrouting_layer import route_task
-from utils import record_audio, transcribe_audio, synthesize_audio, play_audio, map_to_route
+from utils import record_audio, transcribe_audio, synthesize_audio, play_audio
+from tasks.map_to_task import map_to_route
 from ai_service import ai_response
 
 def main():

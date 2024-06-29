@@ -1,5 +1,5 @@
-import mysql_connector
-from mysql_connector import Error
+import mysql.connector
+from mysql.connector import Error
 from dotenv import load_dotenv
 import os
 
@@ -7,10 +7,10 @@ load_dotenv()
 
 def db_connection():
     try:
-        connection = mysql_connector.connect(
+        connection = mysql.connector.connect(
             host=os.getenv("DB_HOST"),
             user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
+            password=os.getenv("DB_PASSWORD", ""),
             database=os.getenv("DB_DATABASE"),
         )
         if connection.is_connected():
@@ -26,3 +26,4 @@ def close_db_connection(connection):
     """
     if connection.is_connected():
         connection.close()
+        print("MySQL connection is closed")

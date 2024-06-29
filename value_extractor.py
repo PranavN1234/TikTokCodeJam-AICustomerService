@@ -30,7 +30,7 @@ prompt_template = PromptTemplate(
 
 def get_value(user_query, variable, semantic_description):
     # Construct the prompt with the user query and semantic description
-    prompt = prompt_template.format(query=f"Extract the {variable} from this query: {user_query}. {semantic_description}")
+    prompt = prompt_template.format(query=f"Extract the {variable} from this user response: {user_query}, Here is some semantic description to help you parse the response: {semantic_description}")
     
     # Get the response from the model using the chat endpoint
     response = openai.chat.completions.create(

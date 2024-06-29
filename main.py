@@ -31,18 +31,14 @@ def main():
         print("user data: ", user_data.all_data())
     
     
-    # while True:
+        while True:
 
-    #     print("Recording Audio....")
-    #     record_audio('test.wav')
-    #     print("audio recorded")
-    #     transcribed_text = transcribe_audio('test.wav')
-    #     print(transcribed_text)
-        
-
-    #     ai_answer = ai_response(transcribed_text)
-    #     synthesize_audio(ai_answer)
-    #     play_audio('output.mp3')
+            user_query = prompt_and_listen("Please tell me how can I assist you today")
+            if user_query:
+                map_to_route(user_query)
+            else:
+                synthesize_audio("I'm sorry I didn't catch that, please repeat")
+                play_audio("output.mp3")
     
 
 if __name__ == "__main__":

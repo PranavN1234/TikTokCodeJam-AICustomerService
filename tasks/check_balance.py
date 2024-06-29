@@ -19,3 +19,10 @@ def check_balance():
     balance = result[0]
     close_db_connection(connection)
     return f"Your current account balance is ${balance}"    
+
+# 77508215
+# What was your first pet’s name?
+# Max
+# Bhanu
+# Gupta
+# 1996-03-18

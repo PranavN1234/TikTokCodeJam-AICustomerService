@@ -40,8 +40,14 @@ def map_to_route(user_query, connection):
             print("Flagging fraud")
         case "redirect_agent":
             print("redirecting agent")
+        case "end_conversation":
+            synthesize_audio("Thank you for using our service. Goodbye!")
+            play_audio('output.mp3')
+            return False
         case "chitchat":
             print("chitchatting")
         
         case _:
             print("Something wrong")
+        
+    return True

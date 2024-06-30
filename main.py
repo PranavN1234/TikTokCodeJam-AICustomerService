@@ -35,7 +35,9 @@ def main():
 
             user_query = prompt_and_listen("Please tell me how can I assist you today")
             if user_query:
-                map_to_route(user_query, connection)
+                continue_conversation = map_to_route(user_query, connection)
+                if not continue_conversation:
+                    break
             else:
                 synthesize_audio("I'm sorry I didn't catch that, please repeat")
                 play_audio("output.mp3")

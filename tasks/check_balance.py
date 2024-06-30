@@ -31,7 +31,7 @@ def check_user_balance(connection):
     elif account_type == "Savings":
         query = "SELECT balance FROM pba_savings WHERE acct_no = %s"
     elif account_type == "Loan":
-        query = "SELECT balance FROM pba_loan WHERE acct_no = %s"
+        query = "SELECT loan_amount FROM pba_loan WHERE acct_no = %s"
     else:
         response = "Invalid account type found. Please contact customer support."
         synthesize_audio(response)

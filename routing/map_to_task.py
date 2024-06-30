@@ -1,6 +1,8 @@
 from routing.taskrouting_layer import route_task
 from routing.yes_routing_layer import setup_yes_route_layer
 from routing.transaction_dispute_layer import setup_transaction_dispute_route_layer
+from routing.change_info_routing_layer import setup_change_info_route_layer
+from tasks.change_information import change_information, generic_change_information
 from utils import synthesize_audio, play_audio, record_audio, transcribe_audio
 from tasks.block_card import block_card
 from tasks.flag_transaction import handle_general_dispute, flag_specific_transaction
@@ -31,7 +33,15 @@ def map_to_route(user_query, connection):
         case "check_balance":
             check_user_balance(connection)
         case "change_information":
-            print("What information would you like to change")
+            change_information_layer = setup_change_info_route_layer()
+            route = change_information_layer(user_query)
+            if route.name == "generic_info_change":
+                generic_change_information(connection, user_query)
+            elif route.name == "change_email_address":
+                change_information(connection, "email")
+            elif route.name == "change_address":
+                change_information(connection, "address")
+                
         case "block_card":
             if prompt_for_confirmation("So it seems like you wanna block your card, do you wanna proceed with it?"):
                 block_card(connection)    

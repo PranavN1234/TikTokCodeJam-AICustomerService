@@ -47,3 +47,9 @@ def synthesize_audio(text):
     )
   
     response.stream_to_file('output.mp3')
+
+def prompt_and_listen(prompt_text):
+    synthesize_audio(prompt_text)
+    play_audio('output.mp3')
+    record_audio('response.wav')
+    return transcribe_audio('response.wav')

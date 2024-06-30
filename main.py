@@ -1,14 +1,8 @@
-from utils import record_audio, transcribe_audio, synthesize_audio, play_audio
+from utils import record_audio, transcribe_audio, synthesize_audio, play_audio, prompt_and_listen
 from routing.map_to_task import map_to_route
 from auth_manager import Authmanager
 from db_connection import db_connection, close_db_connection
 from user_data import UserData
-
-def prompt_and_listen(prompt_text):
-    synthesize_audio(prompt_text)
-    play_audio('output.mp3')
-    record_audio('response.wav')
-    return transcribe_audio('response.wav')
 
 def main():
     

@@ -1,7 +1,27 @@
 from openai import OpenAI
-
+import os
+import requests
+import json 
 
 client = OpenAI()
+
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+OPENAI_EMBEDDING_MODEL = 'text-embedding-ada-002'
+
+def get_embedding(chunk):
+    url = 'https://api.openai.com/v1/embeddings'
+    headers = {
+        'content-type': 'application/json; charset=utf-8',
+        'Authorization': f"Bearer {OPENAI_API_KEY}"
+    }
+    data = {
+        'model': OPENAI_EMBEDDING_MODEL,
+        'input': chunk
+    }
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    response_json = response.json()
+    embedding = response_json["data"][0]["embedding"]
+    return embedding
 
 def ai_enhancher(custom_response, context):
     response = client.chat.completions.create(
@@ -30,3 +50,17 @@ def ai_response(user_query, function_context=None, additional_context=None):
 
     return response.choices[0].message.content
     
+def ai_response_with_context(user_query, chunks):
+    context = "\n".join(chunks)
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a banking assistant with access to the bank's information database. Please use the following context to answer the user's query."},
+            {"role": "system", "content": f"Context: {context}"},
+            {"role": "user", "content": user_query},
+        ]
+    )
+
+    print(response.choices[0].message.content)
+
+    return response.choices[0].message.content

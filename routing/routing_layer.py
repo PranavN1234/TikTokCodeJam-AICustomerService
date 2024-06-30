@@ -213,6 +213,22 @@ def setup_route_layer():
         ],
     )
 
+    bank_info = Route(
+        name="bank_info",
+        utterances=[
+            "Tell me about Premier Trust Bank",
+            "I want information about Premier Trust Bank",
+            "What services does Premier Trust Bank offer?",
+            "Give me some credit card information",
+            "Tell me about your debit cards",
+            "What are your personal banking services?",
+            "Tell me about business banking services",
+            "I need information on wealth management",
+            "What mortgage services do you offer?",
+            "Give me details about your investment services",
+            "What are your online and mobile banking features?",
+        ],
+    )
     # Place all of our decisions together into a single list
     routes = [
         check_balance,
@@ -222,7 +238,8 @@ def setup_route_layer():
         flag_fraud,
         redirect_agent,
         chitchat,
-        end_conversation
+        end_conversation,
+        bank_info
     ]
 
     # Initialize and return the RouteLayer

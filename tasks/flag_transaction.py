@@ -1,6 +1,6 @@
 from utils import synthesize_audio, play_audio, record_audio, transcribe_audio
 from value_extractor import get_value
-from yes_routing_layer import setup_yes_route_layer
+from routing.yes_routing_layer import setup_yes_route_layer
 from user_data import UserData
 from db_connection import db_connection, close_db_connection
 from value_extractor import get_value
@@ -16,9 +16,7 @@ def prompt_for_confirmation(prompt_text):
     
     return route.name == "affirmative"
 
-def handle_general_dispute():
-    
-    connection = db_connection()
+def handle_general_dispute(connection):
     if not connection:
         synthesize_audio("Failed to connect to the database.")
         play_audio('output.mp3')
@@ -35,8 +33,6 @@ def handle_general_dispute():
     """
     cursor.execute(query, (user_data.get_data("account_number"), user_data.get_data("account_number")))
     transactions = cursor.fetchall()
-    close_db_connection(connection)
-
     if not transactions:
         synthesize_audio("No recent transactions found for your account.")
         play_audio('output.mp3')
@@ -48,12 +44,9 @@ def handle_general_dispute():
     synthesize_audio(f"Here are your recent transactions: {transaction_details}. Please provide the transaction ID you'd like to dispute.")
     play_audio('output.mp3')
     
-    flag_specific_transaction()
+    flag_specific_transaction(connection)
 
-def flag_specific_transaction(user_query=None):
-
-    
-    connection = db_connection()
+def flag_specific_transaction(connection, user_query=None):
     if not connection:
         synthesize_audio("Failed to connect to the database.")
         play_audio('output.mp3')
@@ -89,6 +82,5 @@ def flag_specific_transaction(user_query=None):
     update_query = "UPDATE pba_transactions SET flagged = 1, flag_reason = %s WHERE t_id = %s"
     cursor.execute(update_query, (flag_reason_value.value, transaction_id))
     connection.commit()
-    close_db_connection(connection)
     synthesize_audio("The transaction has been successfully flagged.")
     play_audio('output.mp3')

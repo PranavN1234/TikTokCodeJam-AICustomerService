@@ -47,7 +47,6 @@ def setup_route_layer():
             "I need to correct my name spelling on the account",
             "How can I add an alternate phone number?",
             "Please update my work phone number",
-            "I want to change my secondary email address",
             "My contact information needs to be updated",
             "I need to add a new address to my account",
             "How do I remove an old address from my profile?",

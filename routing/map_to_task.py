@@ -1,12 +1,14 @@
-from taskrouting_layer import route_task
-from yes_routing_layer import setup_yes_route_layer
-from transaction_dispute_layer import setup_transaction_dispute_route_layer
+from routing.taskrouting_layer import route_task
+from routing.yes_routing_layer import setup_yes_route_layer
+from routing.transaction_dispute_layer import setup_transaction_dispute_route_layer
+from routing.change_info_routing_layer import setup_change_info_route_layer
+from tasks.change_information import change_information, generic_change_information
 from utils import synthesize_audio, play_audio, record_audio, transcribe_audio
 from tasks.block_card import block_card
 from tasks.flag_transaction import handle_general_dispute, flag_specific_transaction
 from tasks.check_balance import check_user_balance
-from card_routing_layer import setup_card_type_route_layer
 from tasks.request_new_card import prompt_for_card_type, issue_new_card
+from ai_service import ai_response
 from user_data import UserData
 from tasks.handle_bank_info import get_bank_info
 
@@ -35,10 +37,18 @@ def map_to_route(user_query, connection):
         case "check_balance":
             check_user_balance(connection)
         case "change_information":
-            print("What information would you like to change")
+            change_information_layer = setup_change_info_route_layer()
+            route = change_information_layer(user_query)
+            if route.name == "generic_info_change":
+                generic_change_information(connection, user_query)
+            elif route.name == "change_email_address":
+                change_information(connection, "email")
+            elif route.name == "change_address":
+                change_information(connection, "address")
+                
         case "block_card":
             if prompt_for_confirmation("So it seems like you wanna block your card, do you wanna proceed with it?"):
-                block_card()    
+                block_card(connection)    
         case "issue_new_card":
             card_type = prompt_for_card_type()
             if card_type and prompt_for_confirmation(f"So you want to issue a new {card_type} card, do you want to proceed?"):
@@ -48,9 +58,9 @@ def map_to_route(user_query, connection):
                 transaction_dispute_route_layer = setup_transaction_dispute_route_layer()
                 route = transaction_dispute_route_layer(user_query)
                 if route.name == "general_dispute":
-                    handle_general_dispute()
+                    handle_general_dispute(connection)
                 elif route.name == "specific_dispute":
-                    flag_specific_transaction(user_query)
+                    flag_specific_transaction(connection, user_query)
         case "redirect_agent":
             print("redirecting agent")
         case "end_conversation":
@@ -58,11 +68,13 @@ def map_to_route(user_query, connection):
             play_audio('output.mp3')
             return False
         case "chitchat":
+            chitchat_response = ai_response(user_query)
+            synthesize_audio(chitchat_response)
+            play_audio('output.mp3')
             print("chitchatting")
         case "bank_info":
             get_bank_info(user_query)
             print("bank info")
-        
         case _:
             print("Something wrong")
     

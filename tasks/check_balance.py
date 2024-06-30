@@ -2,11 +2,10 @@ from db_connection import db_connection, close_db_connection
 from user_data import UserData
 from utils import synthesize_audio, play_audio
 
-def check_user_balance():
+def check_user_balance(connection):
     """
     Function to check the balance of the user's account.
     """
-    connection = db_connection()
     if not connection:
         response =  "Sorry, we are unable to process your request at the moment. Please try again later."
         synthesize_audio(response)

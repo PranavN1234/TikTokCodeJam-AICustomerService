@@ -1,13 +1,12 @@
-from taskrouting_layer import route_task
-from yes_routing_layer import setup_yes_route_layer
-from transaction_dispute_layer import setup_transaction_dispute_route_layer
+from routing.taskrouting_layer import route_task
+from routing.yes_routing_layer import setup_yes_route_layer
+from routing.transaction_dispute_layer import setup_transaction_dispute_route_layer
 from utils import synthesize_audio, play_audio, record_audio, transcribe_audio
 from tasks.block_card import block_card
 from tasks.flag_transaction import handle_general_dispute, flag_specific_transaction
 from tasks.check_balance import check_user_balance
-from card_routing_layer import setup_card_type_route_layer
 from tasks.request_new_card import prompt_for_card_type, issue_new_card
-
+from ai_service import ai_response
 
 def prompt_for_confirmation(prompt_text):
     synthesize_audio(prompt_text)
@@ -35,7 +34,7 @@ def map_to_route(user_query, connection):
             print("What information would you like to change")
         case "block_card":
             if prompt_for_confirmation("So it seems like you wanna block your card, do you wanna proceed with it?"):
-                block_card()    
+                block_card(connection)    
         case "issue_new_card":
             card_type = prompt_for_card_type()
             if card_type and prompt_for_confirmation(f"So you want to issue a new {card_type} card, do you want to proceed?"):
@@ -45,9 +44,9 @@ def map_to_route(user_query, connection):
                 transaction_dispute_route_layer = setup_transaction_dispute_route_layer()
                 route = transaction_dispute_route_layer(user_query)
                 if route.name == "general_dispute":
-                    handle_general_dispute()
+                    handle_general_dispute(connection)
                 elif route.name == "specific_dispute":
-                    flag_specific_transaction(user_query)
+                    flag_specific_transaction(connection, user_query)
         case "redirect_agent":
             print("redirecting agent")
         case "end_conversation":
@@ -55,7 +54,9 @@ def map_to_route(user_query, connection):
             play_audio('output.mp3')
             return False
         case "chitchat":
-            print("chitchatting")
+            chitchat_response = ai_response(user_query)
+            synthesize_audio(chitchat_response)
+            play_audio('output.mp3')
         
         case _:
             print("Something wrong")

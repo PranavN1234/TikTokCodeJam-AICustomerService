@@ -1,4 +1,3 @@
-from db_connection import db_connection, close_db_connection
 from user_data import UserData
 from utils import synthesize_audio, play_audio
 

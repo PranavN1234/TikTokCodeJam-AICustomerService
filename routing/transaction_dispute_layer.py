@@ -1,5 +1,3 @@
-# transaction_dispute_routing_layer.py
-
 from semantic_router.encoders import OpenAIEncoder
 from semantic_router.layer import RouteLayer
 from semantic_router import Route

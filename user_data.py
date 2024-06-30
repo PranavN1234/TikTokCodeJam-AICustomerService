@@ -16,5 +16,15 @@ class UserData:
     def clear_data(self):
         self.data = {}
 
+    def add_recent_query(self, query):
+        if "recent_queries" not in self.data:
+            self.data["recent_queries"] = []
+        self.data["recent_queries"].append(query)
+        if len(self.data["recent_queries"]) > 3:
+            self.data["recent_queries"].pop(0)
+
+    def get_recent_queries(self):
+        return self.data.get("recent_queries", [])
+    
     def all_data(self):
         return self.data

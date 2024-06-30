@@ -7,7 +7,8 @@ from tasks.flag_transaction import handle_general_dispute, flag_specific_transac
 from tasks.check_balance import check_user_balance
 from card_routing_layer import setup_card_type_route_layer
 from tasks.request_new_card import prompt_for_card_type, issue_new_card
-
+from user_data import UserData
+from tasks.handle_bank_info import get_bank_info
 
 def prompt_for_confirmation(prompt_text):
     synthesize_audio(prompt_text)
@@ -27,6 +28,8 @@ def map_to_route(user_query, connection):
     task = route_task(user_query)
 
     print(task)
+
+    user_data = UserData()
 
     match task:
         case "check_balance":
@@ -56,8 +59,14 @@ def map_to_route(user_query, connection):
             return False
         case "chitchat":
             print("chitchatting")
+        case "bank_info":
+            get_bank_info(user_query)
+            print("bank info")
         
         case _:
             print("Something wrong")
-        
+    
+    # Add the user query to recent queries
+    user_data.add_recent_query(user_query)
+
     return True

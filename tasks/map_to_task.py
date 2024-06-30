@@ -19,14 +19,14 @@ def prompt_for_confirmation(prompt_text):
     else:
         return False
 
-def map_to_route(user_query):
+def map_to_route(user_query, connection):
     task = route_task(user_query)
 
     print(task)
 
     match task:
         case "check_balance":
-            check_user_balance()
+            check_user_balance(connection)
         case "change_information":
             print("What information would you like to change")
         case "block_card":
@@ -35,13 +35,19 @@ def map_to_route(user_query):
         case "issue_new_card":
             card_type = prompt_for_card_type()
             if card_type and prompt_for_confirmation(f"So you want to issue a new {card_type} card, do you want to proceed?"):
-                issue_new_card(card_type)
+                issue_new_card(connection, card_type)
         case "flag_fraud":
             print("Flagging fraud")
         case "redirect_agent":
             print("redirecting agent")
+        case "end_conversation":
+            synthesize_audio("Thank you for using our service. Goodbye!")
+            play_audio('output.mp3')
+            return False
         case "chitchat":
             print("chitchatting")
         
         case _:
             print("Something wrong")
+        
+    return True

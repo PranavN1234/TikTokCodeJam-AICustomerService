@@ -35,11 +35,14 @@ def main():
 
             user_query = prompt_and_listen("Please tell me how can I assist you today")
             if user_query:
-                map_to_route(user_query)
+                continue_conversation = map_to_route(user_query, connection)
+                if not continue_conversation:
+                    break
             else:
                 synthesize_audio("I'm sorry I didn't catch that, please repeat")
                 play_audio("output.mp3")
     
+    close_db_connection(connection)
 
 if __name__ == "__main__":
     main()

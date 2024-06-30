@@ -30,8 +30,7 @@ def prompt_for_card_type():
     return route.name if route else None
 
 
-def issue_new_card(card_type):
-    connection = db_connection()
+def issue_new_card(connection, card_type):
     if not connection:
         response = "Sorry, we are unable to process your request at the moment. Please try again later."
         synthesize_audio(response)

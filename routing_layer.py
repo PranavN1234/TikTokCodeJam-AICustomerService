@@ -187,6 +187,32 @@ def setup_route_layer():
             "What do you do for fun?",
         ],
     )
+    
+    end_conversation = Route(
+        name="end_conversation",
+        utterances=[
+            "That's all for now",
+        "I'm done, thank you",
+        "I think we're finished here",
+        "That's it for today",
+        "Nothing else, thanks",
+        "No more questions",
+        "That will be all",
+        "We're good here",
+        "I have no more queries",
+        "This concludes our session",
+        "I'm all set",
+        "Thanks, that's all",
+        "I'm finished, thank you",
+        "We can wrap this up",
+        "I don't need anything else",
+        "Thanks, I'm done",
+        "I appreciate the help, goodbye",
+        "I have everything I need, thank you",
+        "Thank you, goodbye",
+        "That'll do, thanks",
+        ],
+    )
 
     # Place all of our decisions together into a single list
     routes = [
@@ -196,7 +222,8 @@ def setup_route_layer():
         issue_new_card,
         flag_fraud,
         redirect_agent,
-        chitchat
+        chitchat,
+        end_conversation
     ]
 
     # Initialize and return the RouteLayer

@@ -10,7 +10,9 @@ const AudioRecorder = () => {
     if (socket) {
       socket.on('tts_audio', (data) => {
         setPrompt(data.prompt);
-        playAudio(data.audio);
+        playAudio(data.audio).then(() => {
+          startRecording();
+        });
       });
 
       return () => {
@@ -19,7 +21,7 @@ const AudioRecorder = () => {
     }
   }, [socket]);
 
-  const handleAudioInput = async () => {
+  const startRecording = async () => {
     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
     let audioChunks = [];
@@ -47,19 +49,20 @@ const AudioRecorder = () => {
   };
 
   const playAudio = (audioData) => {
-    const audioBlob = new Blob([audioData], { type: 'audio/mp3' });
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    audio.play();
+    return new Promise((resolve) => {
+      const audioBlob = new Blob([audioData], { type: 'audio/mp3' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.play();
+      audio.onended = resolve;
+    });
   };
 
   return (
     <div>
       <h1>Audio Recorder</h1>
       <p>{prompt}</p>
-      <button onClick={handleAudioInput} disabled={recording}>
-        {recording ? 'Recording...' : 'Record Audio'}
-      </button>
+      {recording && <p>Recording...</p>}
     </div>
   );
 };

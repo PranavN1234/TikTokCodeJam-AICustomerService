@@ -37,7 +37,7 @@ def get_bank_info(user_query):
     if results:
         response = ai_response_with_context(user_query, results)
         synthesize_audio(response)
-        play_audio('output.mp3')
+        # play_audio('output.mp3')
     else:
         synthesize_audio("Sorry, I couldn't find any relevant information.")
-        play_audio('output.mp3')
+        # play_audio('output.mp3')

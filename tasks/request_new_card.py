@@ -20,7 +20,7 @@ def generate_pin():
 
 def prompt_for_card_type():
     synthesize_audio("Would you like a credit card or a debit card?")
-    play_audio('output.mp3')
+    # play_audio('output.mp3')
     record_audio('response.wav')
     response = transcribe_audio('response.wav')
     
@@ -34,7 +34,7 @@ def issue_new_card(connection, card_type):
     if not connection:
         response = "Sorry, we are unable to process your request at the moment. Please try again later."
         synthesize_audio(response)
-        play_audio('output.mp3')
+        # play_audio('output.mp3')
         return response
 
     user_data = UserData()
@@ -55,4 +55,4 @@ def issue_new_card(connection, card_type):
 
     response = f"A new {card_type} card has been issued to your account. You should receive it in 5-7 business days."
     synthesize_audio(response)
-    play_audio('output.mp3')
+    # play_audio('output.mp3')

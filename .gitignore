@@ -5,3 +5,4 @@ venv
 *.wav
 *.mp3
 .vscode
+new_env

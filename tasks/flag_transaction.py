@@ -7,7 +7,7 @@ from value_extractor import get_value
 
 def prompt_for_confirmation(prompt_text):
     synthesize_audio(prompt_text)
-    play_audio('output.mp3')
+    # play_audio('output.mp3')
     record_audio('response.wav')
     response = transcribe_audio('response.wav')
     
@@ -19,7 +19,7 @@ def prompt_for_confirmation(prompt_text):
 def handle_general_dispute(connection):
     if not connection:
         synthesize_audio("Failed to connect to the database.")
-        play_audio('output.mp3')
+        # play_audio('output.mp3')
         return
 
     cursor = connection.cursor(dictionary=True)
@@ -35,21 +35,21 @@ def handle_general_dispute(connection):
     transactions = cursor.fetchall()
     if not transactions:
         synthesize_audio("No recent transactions found for your account.")
-        play_audio('output.mp3')
+        # play_audio('output.mp3')
         return
 
     transaction_details = "\n".join(
         [f"Transaction ID: {t['t_id']}, Amount: {t['amount']}, Date: {t['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}" for t in transactions]
     )
     synthesize_audio(f"Here are your recent transactions: {transaction_details}. Please provide the transaction ID you'd like to dispute.")
-    play_audio('output.mp3')
+    # play_audio('output.mp3')
     
     flag_specific_transaction(connection)
 
 def flag_specific_transaction(connection, user_query=None):
     if not connection:
         synthesize_audio("Failed to connect to the database.")
-        play_audio('output.mp3')
+        # play_audio('output.mp3')
         return
     
     if user_query:
@@ -57,7 +57,7 @@ def flag_specific_transaction(connection, user_query=None):
 
     if not transaction_id:
         synthesize_audio("Please provide the transaction ID you'd like to dispute.")
-        play_audio('output.mp3')
+        # play_audio('output.mp3')
         record_audio('response.wav')
         transaction_id = get_value(transcribe_audio('response.wav'), "transaction_id", "Extract the transaction id from the given user response").value.lower()
 
@@ -68,11 +68,11 @@ def flag_specific_transaction(connection, user_query=None):
 
     if not transaction:
         synthesize_audio("Transaction not found.")
-        play_audio('output.mp3')
+        # play_audio('output.mp3')
         return
 
     synthesize_audio("Please provide a reason for flagging this transaction. Was the card with you when the transaction was made?")
-    play_audio('output.mp3')
+    # play_audio('output.mp3')
     record_audio('response.wav')
     flag_reason = transcribe_audio('response.wav')
 
@@ -83,4 +83,4 @@ def flag_specific_transaction(connection, user_query=None):
     cursor.execute(update_query, (flag_reason_value.value, transaction_id))
     connection.commit()
     synthesize_audio("The transaction has been successfully flagged.")
-    play_audio('output.mp3')
+    # play_audio('output.mp3')

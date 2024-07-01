@@ -6,7 +6,7 @@ from routing.yes_routing_layer import setup_yes_route_layer
 
 def prompt_for_confirmation(prompt_text):
     synthesize_audio(prompt_text)
-    play_audio('output.mp3')
+    # play_audio('output.mp3')
     record_audio('response.wav')
     response = transcribe_audio('response.wav')
     
@@ -18,7 +18,7 @@ def prompt_for_confirmation(prompt_text):
 def prompt_for_new_value(attribute):
     if attribute == "address":
         synthesize_audio("Please provide your full new address.")
-        play_audio('output.mp3')
+        # play_audio('output.mp3')
         record_audio('response_address.wav')
         full_address = transcribe_audio('response_address.wav')
         
@@ -31,7 +31,7 @@ def prompt_for_new_value(attribute):
         return (street, city, zip_code, state)
     else:
         synthesize_audio(f"Please provide the new {attribute}.")
-        play_audio('output.mp3')
+        # play_audio('output.mp3')
         record_audio('response.wav')
         new_value = transcribe_audio('response.wav')
         value = get_value(new_value, attribute, f"Extract the new {attribute} from the user response in a proper format.")
@@ -78,12 +78,12 @@ def change_information(connection, attribute):
     else:
         synthesize_audio("No changes were made to your account information.")
     
-    play_audio('output.mp3')
+    # play_audio('output.mp3')
     
 
 def generic_change_information(connection, user_query):
     synthesize_audio("What information would you like to change on your account? Your options are address or email.")
-    play_audio('output.mp3')
+    # play_audio('output.mp3')
     record_audio('response.wav')
     response = transcribe_audio('response.wav')
     
@@ -96,4 +96,4 @@ def generic_change_information(connection, user_query):
             change_information(connection, "address")
     else:
         synthesize_audio("Sorry, it is not possible to change this information through this service. Please make an appointment on the website.")
-        play_audio('output.mp3')
+        # play_audio('output.mp3')

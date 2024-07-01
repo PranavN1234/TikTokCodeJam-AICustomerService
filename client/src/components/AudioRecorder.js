@@ -1,13 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
+const MIN_DECIBELS = -45;
+const SILENCE_DELAY = 4000; // 4 seconds
 
 const AudioRecorder = () => {
   const [recording, setRecording] = useState(false);
   const [blobURL, setBlobURL] = useState('');
+  const [silenceDetected, setSilenceDetected] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const silenceTimeoutRef = useRef(null);
-  const silenceDetectedRef = useRef(false);
-  const bufferPeriodRef = useRef(true);
 
   useEffect(() => {
     if (recording) {
@@ -22,25 +24,50 @@ const AudioRecorder = () => {
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const audioURL = URL.createObjectURL(audioBlob);
-        setBlobURL(audioURL);
-        transcribeAudio(audioBlob);
-        console.log('Recorded Blob:', audioBlob);
-        audioChunksRef.current = [];
-      };
-
       mediaRecorder.start();
-      bufferPeriodRef.current = true; // Start buffer period
-      setTimeout(() => {
-        bufferPeriodRef.current = false; // End buffer period after 2 seconds
-        detectSilence(stream, 3000);
-      }, 2000);
+
+      mediaRecorder.addEventListener("dataavailable", event => {
+        audioChunksRef.current.push(event.data);
+      });
+
+      const audioContext = new AudioContext();
+      const audioStreamSource = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.minDecibels = MIN_DECIBELS;
+      audioStreamSource.connect(analyser);
+
+      const bufferLength = analyser.frequencyBinCount;
+      const domainData = new Uint8Array(bufferLength);
+
+      const detectSound = () => {
+        analyser.getByteFrequencyData(domainData);
+        const sum = domainData.reduce((a, b) => a + b, 0);
+
+        if (sum > 0) {
+          clearTimeout(silenceTimeoutRef.current);
+          setSilenceDetected(false);
+          silenceTimeoutRef.current = setTimeout(() => {
+            setSilenceDetected(true);
+            console.log('Silence detected for 4 seconds');
+          }, SILENCE_DELAY);
+        }
+
+        if (recording) {
+          window.requestAnimationFrame(detectSound);
+        }
+      };
+
+      window.requestAnimationFrame(detectSound);
+
+      mediaRecorder.addEventListener("stop", () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setBlobURL(audioUrl);
+        console.log('Recorded Blob:', audioBlob);
+
+        // Reset audio chunks
+        audioChunksRef.current = [];
+      });
     });
   };
 
@@ -48,47 +75,12 @@ const AudioRecorder = () => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
     }
+    clearTimeout(silenceTimeoutRef.current);
   };
 
-  const detectSilence = (stream, silenceDelay) => {
-    const audioContext = new AudioContext();
-    const mediaStreamSource = audioContext.createMediaStreamSource(stream);
-    const analyser = audioContext.createAnalyser();
-    mediaStreamSource.connect(analyser);
-    analyser.fftSize = 2048; // Increased fftSize for better frequency resolution
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    const silenceThreshold = 100; // Adjust the threshold for silence detection
-
-    const checkSilence = () => {
-      if (!bufferPeriodRef.current) { // Skip silence detection during buffer period
-        analyser.getByteFrequencyData(dataArray);
-        const sum = dataArray.reduce((a, b) => a + b, 0);
-        if (sum < silenceThreshold) {
-          if (!silenceDetectedRef.current) {
-            silenceDetectedRef.current = true;
-            console.log('Silence detected');
-            silenceTimeoutRef.current = setTimeout(() => {
-              if (silenceDetectedRef.current) {
-                console.log('Silence detected for 3 seconds');
-                silenceDetectedRef.current = false; // Reset the silence detection
-              }
-            }, silenceDelay);
-          }
-        } else {
-          silenceDetectedRef.current = false;
-          clearTimeout(silenceTimeoutRef.current);
-        }
-      }
-      requestAnimationFrame(checkSilence);
-    };
-
-    checkSilence();
-  };
-
-  const transcribeAudio = async (blob) => {
-    // Placeholder transcription function, replace with actual transcription service
-    const transcript = 'Transcription of the recorded audio';
-    console.log('Transcription:', transcript);
+  const playAudio = () => {
+    const audio = new Audio(blobURL);
+    audio.play();
   };
 
   return (
@@ -96,15 +88,11 @@ const AudioRecorder = () => {
       <div>
         <button onClick={() => setRecording(true)} type="button">Start</button>
         <button onClick={() => setRecording(false)} type="button">Stop</button>
-        {blobURL && <button onClick={() => playAudio(blobURL)} type="button">Play</button>}
+        {blobURL && <button onClick={playAudio} type="button">Play</button>}
       </div>
+      {silenceDetected && <p>Silence detected for 4 seconds</p>}
     </div>
   );
-};
-
-const playAudio = (url) => {
-  const audio = new Audio(url);
-  audio.play();
 };
 
 export default AudioRecorder;

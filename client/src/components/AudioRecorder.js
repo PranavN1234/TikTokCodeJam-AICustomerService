@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:5001');
+import React, { useState, useEffect, useContext } from 'react';
+import { SocketContext } from '../App';
 
 const AudioRecorder = () => {
   const [recording, setRecording] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const socket = useContext(SocketContext);
 
   useEffect(() => {
-    // Handle TTS audio from the backend
-    socket.on('tts_audio', (data) => {
-      playAudio(data);
-    });
+    if (socket) {
+      socket.on('tts_audio', (data) => {
+        setPrompt(data.prompt);
+        playAudio(data.audio);
+      });
 
-    // Cleanup the socket connection on component unmount
-    return () => {
-      socket.off('tts_audio');
-    };
-  }, []);
+      return () => {
+        socket.off('tts_audio');
+      };
+    }
+  }, [socket]);
 
   const handleAudioInput = async () => {
     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -32,7 +33,7 @@ const AudioRecorder = () => {
       const reader = new FileReader();
       reader.readAsArrayBuffer(audioBlob);
       reader.onloadend = () => {
-        socket.emit('audio', reader.result);
+        socket.emit('audio_response', reader.result);
       };
     };
 
@@ -49,13 +50,13 @@ const AudioRecorder = () => {
     const audioBlob = new Blob([audioData], { type: 'audio/mp3' });
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
-    console.log("playing audio:");
     audio.play();
   };
 
   return (
     <div>
       <h1>Audio Recorder</h1>
+      <p>{prompt}</p>
       <button onClick={handleAudioInput} disabled={recording}>
         {recording ? 'Recording...' : 'Record Audio'}
       </button>

@@ -40,6 +40,7 @@ def transcribe_audio(file_path):
     return transcription.text
 
 def synthesize_audio(text):
+    print("synthesizing text->", text)
     response = openai.audio.speech.create(
         model="tts-1",
         voice="nova",

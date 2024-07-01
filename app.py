@@ -1,12 +1,14 @@
 from flask import Flask, send_file
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
-import pygame
 import openai
 from io import BytesIO
 from pydub import AudioSegment
 from pydub.utils import which
 from dotenv import load_dotenv
+from utils import transcribe_audio, synthesize_audio
+from db_connection import db_connection, close_db_connection
+from auth_manager import Authmanager
 
 # Load the .env file
 load_dotenv()
@@ -17,38 +19,99 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Set the path for ffmpeg
 AudioSegment.converter = which("ffmpeg")
 
+connection = None
+auth_manager = None
+user_data = None
+auth_steps = None
+current_step_index = 0
 
+@app.route('/')
+def index():
+    return "Server is running"
 
-@socketio.on('audio')
-def handle_audio(audio_data):
-    audio_segment = AudioSegment.from_file(BytesIO(audio_data), format="webm")
-    audio_segment.export("received_audio.wav", format="wav")
-
-    play_audio('received_audio.wav')
-
-    # Generate TTS audio
-    tts_text = "This is a response from the server."
-    synthesize_audio(tts_text)
-
-    # Send TTS audio back to the frontend
+def send_prompt(prompt_text, final=False):
+    if not prompt_text:
+        emit('error', {'message': 'Prompt text cannot be empty.'})
+        return
+    print(f"Sending prompt: {prompt_text}")
+    synthesize_audio(prompt_text)
     with open("output.mp3", "rb") as audio_file:
         tts_audio = audio_file.read()
-        socketio.emit('tts_audio', tts_audio)
+    emit('tts_audio', {'audio': tts_audio, 'prompt': prompt_text, 'final': final})
 
-def play_audio(file_path):
-    pygame.mixer.init()
-    pygame.mixer.music.load(file_path)
-    pygame.mixer.music.play()
-    while pygame.mixer.music.get_busy():
-        continue
+@socketio.on('start')
+def start_interaction():
+    global connection, auth_manager, user_data, auth_steps, current_step_index
+    connection = db_connection()
+    if not connection:
+        emit('error', {'message': 'Failed to connect to the database. Exiting.'})
+        return
 
-def synthesize_audio(text):
-    response = openai.audio.speech.create(
-        model="tts-1",
-        voice="nova",
-        input=text,
-    )
-    response.stream_to_file('output.mp3')
+    auth_steps = [
+        {
+            "prompt": "Please can you tell me your account number.",
+            "variable": "account_number",
+            "semantic_description": "Extract only account number as integer no spaces or special characters.",
+            "auth_function": "authenticate_account_number"
+        },
+        {
+            "prompt": "Please state your first and last name.",
+            "variable": "name",
+            "semantic_description": "Extract the name from the user query in english just the name no special formatting needed.",
+            "auth_function": "authenticate_name"
+        },
+        {
+            "prompt": "Please say your date of birth",
+            "variable": "dob",
+            "semantic_description": "Extract the date of birth from the user response in YYYY-MM-DD.",
+            "auth_function": "authenticate_dob"
+        },
+        {
+            "prompt": "",  # This will be dynamically set based on the security question
+            "variable": "security_answer",
+            "semantic_description": "Extract just the security answer from the user response, so for example the response is I want to be an artist, just take artist as the answer ",
+            "auth_function": "authenticate_security_answer"
+        }
+    ]
+
+    auth_manager = Authmanager(connection, auth_steps)
+    user_data = auth_manager.user_data
+    current_step_index = 0
+
+    next_step = auth_steps[current_step_index]
+    send_prompt(next_step["prompt"])
+
+@socketio.on('audio_response')
+def handle_audio_response(audio_data):
+    global auth_manager, auth_steps, current_step_index
+
+    print("Received audio response")
+    audio_segment = AudioSegment.from_file(BytesIO(audio_data), format="webm")
+    audio_segment.export("response_audio.wav", format="wav")
+
+    response_text = transcribe_audio('response_audio.wav')
+    print(f"Transcribed text: {response_text}")
+    next_step = auth_steps[current_step_index]
+
+    response_value = auth_manager.handle_auth_step_response(response_text, next_step)
+    
+    if response_value:
+        auth_function = getattr(auth_manager, next_step["auth_function"])
+        print(f"Auth function result: {auth_function(response_value)}")
+        if auth_function(response_value):
+            current_step_index += 1
+            if current_step_index < len(auth_steps):
+                next_step = auth_steps[current_step_index]
+                if next_step["variable"] == "security_answer":
+                    next_step["prompt"] = f"What is the answer to your security question: {user_data.get_data('security_question')}?"
+                send_prompt(next_step["prompt"])
+            else:
+                user_data.set_data("authenticated", True)
+                send_prompt("Authentication successful. Welcome to Premier Trust Bank. I am Jessica your AI Assistant.", final=True)
+        else:
+            send_prompt(f"Authentication failed for {next_step['variable'].replace('_', ' ')}. Please try again.")
+    else:
+        send_prompt("I'm sorry, I didn't understand that. Please try again.")
 
 if __name__ == '__main__':
     socketio.run(app, port=5001, debug=True)

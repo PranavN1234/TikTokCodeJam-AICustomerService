@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, createContext } from 'react';
 import { io } from 'socket.io-client';
 import AudioRecorder from './components/AudioRecorder';
 
+export const SocketContext = createContext();
+
 function App() {
   const [socketInstance, setSocketInstance] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [buttonStatus, setButtonStatus] = useState(false);
 
   const handleClick = () => {
@@ -27,13 +28,12 @@ function App() {
 
       socket.on('connect', () => {
         console.log('Connected to backend');
+        socket.emit('start');
       });
 
       socket.on('disconnect', () => {
         console.log('Disconnected from backend');
       });
-
-      setLoading(false);
 
       return () => {
         socket.disconnect();
@@ -49,9 +49,9 @@ function App() {
       ) : (
         <>
           <button onClick={handleClick}>Turn Chat Off</button>
-          <div className="line">
-            {!loading && socketInstance && <AudioRecorder socket={socketInstance} />}
-          </div>
+          <SocketContext.Provider value={socketInstance}>
+            <AudioRecorder />
+          </SocketContext.Provider>
         </>
       )}
     </div>

@@ -1,96 +1,64 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 
-const MIN_DECIBELS = -45;
-const SILENCE_DELAY = 4000; // 4 seconds
+const socket = io('http://localhost:5001');
 
 const AudioRecorder = () => {
   const [recording, setRecording] = useState(false);
-  const [blobURL, setBlobURL] = useState('');
-  const [silenceDetected, setSilenceDetected] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const silenceTimeoutRef = useRef(null);
 
   useEffect(() => {
-    if (recording) {
-      startRecording();
-    } else {
-      stopRecording();
-    }
-  }, [recording]);
-
-  const startRecording = () => {
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.start();
-
-      mediaRecorder.addEventListener("dataavailable", event => {
-        audioChunksRef.current.push(event.data);
-      });
-
-      const audioContext = new AudioContext();
-      const audioStreamSource = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      analyser.minDecibels = MIN_DECIBELS;
-      audioStreamSource.connect(analyser);
-
-      const bufferLength = analyser.frequencyBinCount;
-      const domainData = new Uint8Array(bufferLength);
-
-      const detectSound = () => {
-        analyser.getByteFrequencyData(domainData);
-        const sum = domainData.reduce((a, b) => a + b, 0);
-
-        if (sum > 0) {
-          clearTimeout(silenceTimeoutRef.current);
-          setSilenceDetected(false);
-          silenceTimeoutRef.current = setTimeout(() => {
-            setSilenceDetected(true);
-            console.log('Silence detected for 4 seconds');
-          }, SILENCE_DELAY);
-        }
-
-        if (recording) {
-          window.requestAnimationFrame(detectSound);
-        }
-      };
-
-      window.requestAnimationFrame(detectSound);
-
-      mediaRecorder.addEventListener("stop", () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setBlobURL(audioUrl);
-        console.log('Recorded Blob:', audioBlob);
-
-        // Reset audio chunks
-        audioChunksRef.current = [];
-      });
+    // Handle TTS audio from the backend
+    socket.on('tts_audio', (data) => {
+      playAudio(data);
     });
+
+    // Cleanup the socket connection on component unmount
+    return () => {
+      socket.off('tts_audio');
+    };
+  }, []);
+
+  const handleAudioInput = async () => {
+    const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
+    let audioChunks = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const reader = new FileReader();
+      reader.readAsArrayBuffer(audioBlob);
+      reader.onloadend = () => {
+        socket.emit('audio', reader.result);
+      };
+    };
+
+    mediaRecorder.start();
+    setRecording(true);
+
+    setTimeout(() => {
+      mediaRecorder.stop();
+      setRecording(false);
+    }, 5000); // Record for 5 seconds
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-    }
-    clearTimeout(silenceTimeoutRef.current);
-  };
-
-  const playAudio = () => {
-    const audio = new Audio(blobURL);
+  const playAudio = (audioData) => {
+    const audioBlob = new Blob([audioData], { type: 'audio/mp3' });
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    console.log("playing audio:");
     audio.play();
   };
 
   return (
     <div>
-      <div>
-        <button onClick={() => setRecording(true)} type="button">Start</button>
-        <button onClick={() => setRecording(false)} type="button">Stop</button>
-        {blobURL && <button onClick={playAudio} type="button">Play</button>}
-      </div>
-      {silenceDetected && <p>Silence detected for 4 seconds</p>}
+      <h1>Audio Recorder</h1>
+      <button onClick={handleAudioInput} disabled={recording}>
+        {recording ? 'Recording...' : 'Record Audio'}
+      </button>
     </div>
   );
 };

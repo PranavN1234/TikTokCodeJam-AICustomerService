@@ -14,6 +14,9 @@ from user_data import UserData
 from audio_data import AudioData
 from tasks.block_card import handle_block_card_selection
 from tasks.flag_transaction import handle_transaction_id_response, handle_flag_reason_response
+from tasks.request_new_card import handle_card_type_selection
+from tasks.change_information import handle_change_info_selection, handle_new_value_selection
+
 
 # Load the .env file
 load_dotenv()
@@ -123,7 +126,7 @@ def handle_audio_response(data):
                 else:
                     user_data.set_data("authenticated", True)
                     authenticated = True
-                    send_prompt("Authentication successful. Welcome to Premier Trust Bank. I am Jessica your AI Assistant.", final=True)
+                    send_prompt("Authentication successful. Welcome to Premier Trust Bank. I am Jessica your AI Assistant. How can I assist you today?")
             else:
                 send_prompt(f"Authentication failed for {next_step['variable'].replace('_', ' ')}. Please try again.")
         else:
@@ -137,6 +140,12 @@ def handle_audio_response(data):
             handle_transaction_id_response(response_text, connection)
         elif tag == 'flag_reason':
             handle_flag_reason_response(response_text, connection)
+        elif tag == 'card_type_selection':
+            handle_card_type_selection(response_text, connection)
+        elif tag == 'change_info_selection':
+            handle_change_info_selection(response_text, connection)
+        elif tag == 'new_value_selection':
+            handle_new_value_selection(response_text, connection)
         else:
             map_to_route(response_text, connection)
 

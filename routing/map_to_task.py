@@ -2,18 +2,18 @@ from routing.taskrouting_layer import route_task
 from routing.yes_routing_layer import setup_yes_route_layer
 from routing.transaction_dispute_layer import setup_transaction_dispute_route_layer
 from routing.change_info_routing_layer import setup_change_info_route_layer
-from tasks.change_information import change_information, generic_change_information
-from utils import synthesize_audio
+from tasks.change_information import change_information_initial_prompt
 from tasks.block_card import block_card_initial_prompt
 from tasks.flag_transaction import handle_general_dispute, handle_transaction_id_response
+from tasks.request_new_card import prompt_for_card_type_initial
+from tasks.flag_transaction import handle_general_dispute
 from tasks.check_balance import check_user_balance
-from tasks.request_new_card import prompt_for_card_type, issue_new_card
 from ai_service import ai_response
 from user_data import UserData
 from tasks.handle_bank_info import get_bank_info
 from flask_socketio import emit
 from audio_data import AudioData
-import threading
+from utils import synthesize_audio
 
 audio_data = AudioData()
 
@@ -48,6 +48,10 @@ def process_confirmed_action(connection):
         handle_general_dispute(connection)
     elif pending_task == "flag_specific_transaction":
         handle_transaction_id_response(connection, audio_data.get_data('user_query'))
+    elif audio_data.get_data('pending_task') == "issue_new_card":
+        prompt_for_card_type_initial(connection)
+    elif audio_data.get_data('pending_task') == "change_information":
+        change_information_initial_prompt(connection)
 
 def map_to_route(user_query, connection):
     task = route_task(user_query)
@@ -59,24 +63,11 @@ def map_to_route(user_query, connection):
             if prompt_for_confirmation("Do you want to check your balance?"):
                 check_user_balance(connection)
         case "change_information":
-            change_information_layer = setup_change_info_route_layer()
-            route = change_information_layer(user_query)
-            if route.name == "generic_info_change":
-                if prompt_for_confirmation("Do you want to change your information?"):
-                    generic_change_information(connection, user_query)
-            elif route.name == "change_email_address":
-                if prompt_for_confirmation("Do you want to change your email address?"):
-                    change_information(connection, "email")
-            elif route.name == "change_address":
-                if prompt_for_confirmation("Do you want to change your address?"):
-                    change_information(connection, "address")
+            prompt_for_confirmation("Do you want to change your information?")
         case "block_card":
             prompt_for_confirmation("So it seems like you wanna block your card, do you wanna proceed with it?")   
         case "issue_new_card":
-            card_type = prompt_for_card_type()
-            if card_type:
-                if prompt_for_confirmation(f"So you want to issue a new {card_type} card, do you want to proceed?"):
-                    issue_new_card(connection, card_type)
+            prompt_for_confirmation("So you want to issue a new card, do you want to proceed?")
         case "flag_fraud":
             dispute_layer = setup_transaction_dispute_route_layer()
             route = dispute_layer(user_query)
@@ -105,4 +96,3 @@ def map_to_route(user_query, connection):
             emit('error', {'message': "Something went wrong"})
 
     user_data.add_recent_query(user_query)
-

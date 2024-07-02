@@ -1,15 +1,20 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { SocketContext } from '../App';
 
 const AudioRecorder = () => {
   const [recording, setRecording] = useState(false);
   const [prompt, setPrompt] = useState("");
+  const currentTagRef = useRef(null); // Use ref for currentTag
   const socket = useContext(SocketContext);
 
   useEffect(() => {
     if (socket) {
       socket.on('tts_audio', (data) => {
         setPrompt(data.prompt);
+        if (data.tag) {
+          currentTagRef.current = data.tag; // Set the tag if it exists in the response
+          console.log('Tag received:', data.tag);
+        }
         playAudio(data.audio).then(() => {
           startRecording();
         });
@@ -35,7 +40,9 @@ const AudioRecorder = () => {
       const reader = new FileReader();
       reader.readAsArrayBuffer(audioBlob);
       reader.onloadend = () => {
-        socket.emit('audio_response', reader.result);
+        console.log('tag emitted', currentTagRef.current);
+        socket.emit('audio_response', { audio: reader.result, tag: currentTagRef.current });
+        currentTagRef.current = null; // Reset the tag after sending the response
       };
     };
 

@@ -6,11 +6,13 @@ from io import BytesIO
 from pydub import AudioSegment
 from pydub.utils import which
 from dotenv import load_dotenv
-from routing.map_to_task import handle_confirmation_response, map_to_route
+from routing.map_to_task import map_to_route, handle_confirmation_response
 from utils import transcribe_audio, synthesize_audio
 from db_connection import db_connection, close_db_connection
 from auth_manager import Authmanager
 from user_data import UserData
+from audio_data import AudioData
+from tasks.block_card import handle_block_card_selection
 
 # Load the .env file
 load_dotenv()
@@ -28,6 +30,8 @@ auth_steps = None
 current_step_index = 0
 authenticated = False
 pending_task = None
+
+audio_data = AudioData()
 
 @app.route('/')
 def index():
@@ -87,14 +91,18 @@ def start_interaction():
     send_prompt(next_step["prompt"])
 
 @socketio.on('audio_response')
-def handle_audio_response(audio_data):
+def handle_audio_response(data):
     global auth_manager, auth_steps, current_step_index, authenticated, pending_task
 
+    audio_content = data.get('audio')
+    tag = data.get('tag')
+    print('current tag', tag)
     print("Received audio response")
-    audio_segment = AudioSegment.from_file(BytesIO(audio_data), format="webm")
+    audio_segment = AudioSegment.from_file(BytesIO(audio_content), format="webm")
     audio_segment.export("response_audio.wav", format="wav")
 
     response_text = transcribe_audio('response_audio.wav')
+    audio_data.set_data('transcribed_text', response_text)
     print(f"Transcribed text: {response_text}")
 
     if not authenticated:
@@ -120,22 +128,12 @@ def handle_audio_response(audio_data):
         else:
             send_prompt("I'm sorry, I didn't understand that. Please try again.")
     else:
-        if pending_task:
-            result = handle_confirmation_response(response_text, connection, pending_task)
-            if result:
-                pending_task = None
-            else:
-                send_prompt("Confirmation not received. Please try again.")
+        if tag == 'confirmation':
+            handle_confirmation_response(response_text, connection)
+        elif tag == 'block_card_selection':
+            handle_block_card_selection(response_text, connection)
         else:
-            pending_task = map_to_route(response_text, connection)
-            if isinstance(pending_task, str):
-                send_prompt(pending_task)
-            elif pending_task:
-                # Do not prompt for additional help yet; wait for confirmation response first.
-                pass
-            else:
-                send_prompt("Thank you for using our service. Goodbye.", final=True)
-                close_db_connection(connection)
+            map_to_route(response_text, connection)
 
 if __name__ == '__main__':
     socketio.run(app, port=5001, debug=True)

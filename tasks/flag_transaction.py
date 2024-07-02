@@ -1,25 +1,17 @@
-from utils import synthesize_audio, play_audio, record_audio, transcribe_audio
+from utils import synthesize_audio, transcribe_audio
 from value_extractor import get_value
-from routing.yes_routing_layer import setup_yes_route_layer
 from user_data import UserData
-from db_connection import db_connection, close_db_connection
-from value_extractor import get_value
+from flask_socketio import emit
+from audio_data import AudioData
 
-def prompt_for_confirmation(prompt_text):
-    synthesize_audio(prompt_text)
-    # play_audio('output.mp3')
-    record_audio('response.wav')
-    response = transcribe_audio('response.wav')
-    
-    yes_route_layer = setup_yes_route_layer()
-    route = yes_route_layer(response)
-    
-    return route.name == "affirmative"
+audio_data = AudioData()
 
 def handle_general_dispute(connection):
     if not connection:
         synthesize_audio("Failed to connect to the database.")
-        # play_audio('output.mp3')
+        with open("output.mp3", "rb") as audio_file:
+            tts_audio = audio_file.read()
+        emit('tts_audio', {'audio': tts_audio, 'prompt': "Failed to connect to the database."})
         return
 
     cursor = connection.cursor(dictionary=True)
@@ -35,32 +27,29 @@ def handle_general_dispute(connection):
     transactions = cursor.fetchall()
     if not transactions:
         synthesize_audio("No recent transactions found for your account.")
-        # play_audio('output.mp3')
+        with open("output.mp3", "rb") as audio_file:
+            tts_audio = audio_file.read()
+        emit('tts_audio', {'audio': tts_audio, 'prompt': "No recent transactions found for your account."})
         return
 
     transaction_details = "\n".join(
         [f"Transaction ID: {t['t_id']}, Amount: {t['amount']}, Date: {t['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}" for t in transactions]
     )
-    synthesize_audio(f"Here are your recent transactions: {transaction_details}. Please provide the transaction ID you'd like to dispute.")
-    # play_audio('output.mp3')
-    
-    flag_specific_transaction(connection)
+    prompt_text = f"Here are your recent transactions: {transaction_details}. Please provide the transaction ID you'd like to dispute."
+    synthesize_audio(prompt_text)
+    with open("output.mp3", "rb") as audio_file:
+        tts_audio = audio_file.read()
+    emit('tts_audio', {'audio': tts_audio, 'prompt': prompt_text, 'tag': 'transaction_id'})
 
-def flag_specific_transaction(connection, user_query=None):
-    if not connection:
-        synthesize_audio("Failed to connect to the database.")
-        # play_audio('output.mp3')
-        return
-    
-    if user_query:
-        transaction_id = get_value(user_query, "transaction_id", "Check if the user response had a potential transaction id otherwise return empty string").value.lower()
-
+def handle_transaction_id_response(response_text, connection):
+    transaction_id = get_value(response_text, "transaction_id", "Check if the user response had a potential transaction id otherwise return empty string").value.lower()
     if not transaction_id:
         synthesize_audio("Please provide the transaction ID you'd like to dispute.")
-        # play_audio('output.mp3')
-        record_audio('response.wav')
-        transaction_id = get_value(transcribe_audio('response.wav'), "transaction_id", "Extract the transaction id from the given user response").value.lower()
-
+        with open("output.mp3", "rb") as audio_file:
+            tts_audio = audio_file.read()
+        emit('tts_audio', {'audio': tts_audio, 'prompt': "Please provide the transaction ID you'd like to dispute.", 'tag': 'transaction_id'})
+        return
+    
     cursor = connection.cursor(dictionary=True)
     query = "SELECT * FROM pba_transactions WHERE LOWER(t_id) = %s"
     cursor.execute(query, (transaction_id,))
@@ -68,19 +57,29 @@ def flag_specific_transaction(connection, user_query=None):
 
     if not transaction:
         synthesize_audio("Transaction not found.")
-        # play_audio('output.mp3')
+        with open("output.mp3", "rb") as audio_file:
+            tts_audio = audio_file.read()
+        emit('tts_audio', {'audio': tts_audio, 'prompt': "Transaction not found.", 'tag': 'transaction_id'})
         return
 
-    synthesize_audio("Please provide a reason for flagging this transaction. Was the card with you when the transaction was made?")
-    # play_audio('output.mp3')
-    record_audio('response.wav')
-    flag_reason = transcribe_audio('response.wav')
+    audio_data.set_data('transaction_id', transaction_id)
+    prompt_text = "Please provide a reason for flagging this transaction. Was the card with you when the transaction was made?"
+    synthesize_audio(prompt_text)
+    with open("output.mp3", "rb") as audio_file:
+        tts_audio = audio_file.read()
+    emit('tts_audio', {'audio': tts_audio, 'prompt': prompt_text, 'tag': 'flag_reason'})
 
-    # Extract specific values from the user input
-    flag_reason_value = get_value(flag_reason, "reason", "Extract the reason for flagging the transaction and whether the card was with the user or not.")
+def handle_flag_reason_response(response_text, connection):
+    transaction_id = audio_data.get_data('transaction_id')
+    flag_reason_value = get_value(response_text, "reason", "Extract the reason for flagging the transaction and whether the card was with the user or not.").value
 
+    cursor = connection.cursor(dictionary=True)
     update_query = "UPDATE pba_transactions SET flagged = 1, flag_reason = %s WHERE t_id = %s"
-    cursor.execute(update_query, (flag_reason_value.value, transaction_id))
+    cursor.execute(update_query, (flag_reason_value, transaction_id))
     connection.commit()
-    synthesize_audio("The transaction has been successfully flagged.")
-    # play_audio('output.mp3')
+    
+    prompt_text = "The transaction has been successfully flagged."
+    synthesize_audio(prompt_text)
+    with open("output.mp3", "rb") as audio_file:
+        tts_audio = audio_file.read()
+    emit('tts_audio', {'audio': tts_audio, 'prompt': prompt_text})

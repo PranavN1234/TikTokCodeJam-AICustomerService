@@ -13,6 +13,7 @@ from auth_manager import Authmanager
 from user_data import UserData
 from audio_data import AudioData
 from tasks.block_card import handle_block_card_selection
+from tasks.flag_transaction import handle_transaction_id_response, handle_flag_reason_response
 
 # Load the .env file
 load_dotenv()
@@ -132,6 +133,10 @@ def handle_audio_response(data):
             handle_confirmation_response(response_text, connection)
         elif tag == 'block_card_selection':
             handle_block_card_selection(response_text, connection)
+        elif tag == 'transaction_id':
+            handle_transaction_id_response(response_text, connection)
+        elif tag == 'flag_reason':
+            handle_flag_reason_response(response_text, connection)
         else:
             map_to_route(response_text, connection)
 

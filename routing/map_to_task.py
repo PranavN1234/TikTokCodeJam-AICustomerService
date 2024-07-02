@@ -5,7 +5,7 @@ from routing.change_info_routing_layer import setup_change_info_route_layer
 from tasks.change_information import change_information, generic_change_information
 from utils import synthesize_audio
 from tasks.block_card import block_card_initial_prompt
-from tasks.flag_transaction import handle_general_dispute
+from tasks.flag_transaction import handle_general_dispute, handle_transaction_id_response
 from tasks.check_balance import check_user_balance
 from tasks.request_new_card import prompt_for_card_type, issue_new_card
 from ai_service import ai_response
@@ -39,14 +39,21 @@ def handle_confirmation_response(response_text, connection):
         return
 
 def process_confirmed_action(connection):
+
+    pending_task = audio_data.get_data('pending_task')
     # Handle the confirmed action here
-    if audio_data.get_data('pending_task') == "block_card":
+    if pending_task == "block_card":
         block_card_initial_prompt(connection)
+    elif pending_task == "flag_general_dispute":
+        handle_general_dispute(connection)
+    elif pending_task == "flag_specific_transaction":
+        handle_transaction_id_response(connection, audio_data.get_data('user_query'))
 
 def map_to_route(user_query, connection):
     task = route_task(user_query)
     user_data = UserData()
     audio_data.set_data('pending_task', task)
+    audio_data.set_data('user_query', user_query)
     match task:
         case "check_balance":
             if prompt_for_confirmation("Do you want to check your balance?"):
@@ -71,8 +78,14 @@ def map_to_route(user_query, connection):
                 if prompt_for_confirmation(f"So you want to issue a new {card_type} card, do you want to proceed?"):
                     issue_new_card(connection, card_type)
         case "flag_fraud":
-            if prompt_for_confirmation("So it seems like you want to flag a transaction, sorry for your troubles, shall we proceed?"):
-                handle_general_dispute(connection)
+            dispute_layer = setup_transaction_dispute_route_layer()
+            route = dispute_layer(user_query)
+            if route.name == "general_dispute":
+                audio_data.set_data('pending_task', 'flag_general_dispute')
+                prompt_for_confirmation("So it seems like you have a general transaction dispute lets get some more info")
+            elif route.name == "specific_dispute":
+                audio_data.set_data('pending_task', 'flag_specific_transaction')
+                prompt_for_confirmation("So it seems like you have issues with a specific transaction, shall we resolve your dispute")
         case "redirect_agent":
             emit('prompt', {'message': "Redirecting to a live agent..."})
         case "end_conversation":

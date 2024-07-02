@@ -1,6 +1,7 @@
 import React, { useEffect, useState, createContext } from 'react';
 import { io } from 'socket.io-client';
 import AudioRecorder from './components/AudioRecorder';
+import './App.css'; // Import the CSS file for styling
 
 export const SocketContext = createContext();
 
@@ -43,7 +44,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1>React/Flask App + socket.io</h1>
+      <h1>AI Customer Service Assistant</h1>
       {!buttonStatus ? (
         <button onClick={handleClick}>Turn Chat On</button>
       ) : (

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { SocketContext } from '../App';
+import './AudioRecorder.css'; // Import the CSS file for styling
 
 const AudioRecorder = () => {
   const [recording, setRecording] = useState(false);
   const [prompt, setPrompt] = useState("");
-  const currentTagRef = useRef(null); // Use ref for currentTag
+  const currentTagRef = useRef(null);
   const socket = useContext(SocketContext);
 
   useEffect(() => {
@@ -12,7 +13,7 @@ const AudioRecorder = () => {
       socket.on('tts_audio', (data) => {
         setPrompt(data.prompt);
         if (data.tag) {
-          currentTagRef.current = data.tag; // Set the tag if it exists in the response
+          currentTagRef.current = data.tag;
           console.log('Tag received:', data.tag);
         }
         playAudio(data.audio).then(() => {
@@ -42,7 +43,7 @@ const AudioRecorder = () => {
       reader.onloadend = () => {
         console.log('tag emitted', currentTagRef.current);
         socket.emit('audio_response', { audio: reader.result, tag: currentTagRef.current });
-        currentTagRef.current = null; // Reset the tag after sending the response
+        currentTagRef.current = null; 
       };
     };
 
@@ -52,7 +53,7 @@ const AudioRecorder = () => {
     setTimeout(() => {
       mediaRecorder.stop();
       setRecording(false);
-    }, 5000); // Record for 5 seconds
+    }, 5000); 
   };
 
   const playAudio = (audioData) => {
@@ -66,10 +67,13 @@ const AudioRecorder = () => {
   };
 
   return (
-    <div>
-      <h1>Audio Recorder</h1>
+    <div className="audio-recorder">
+      <div className={`button-container ${recording ? 'recording' : ''}`}>
+        <button className="record-button" onClick={startRecording}>
+          {recording ? 'Recording...' : 'Start Recording'}
+        </button>
+      </div>
       <p>{prompt}</p>
-      {recording && <p>Recording...</p>}
     </div>
   );
 };

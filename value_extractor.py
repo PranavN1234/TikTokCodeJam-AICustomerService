@@ -34,7 +34,7 @@ def get_value(user_query, variable, semantic_description):
     
     # Get the response from the model using the chat endpoint
     response = openai.chat.completions.create(
-        model="gpt-4",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}

@@ -229,6 +229,22 @@ def setup_route_layer():
             "What are your online and mobile banking features?",
         ],
     )
+
+    transaction_analysis = Route(
+        name="transaction_analysis",
+        utterances=[
+            "Analyze my recent transactions",
+            "Can you give me a breakdown of my spending?",
+            "Show me my spending categories",
+            "How much did I spend on groceries last month?",
+            "What's my total expenditure for the month?",
+            "Provide a report on my spending",
+            "Give me an overview of my transactions",
+            "How much have I spent on entertainment?",
+            "Show me my financial summary",
+            "What are my top spending categories?",
+        ],
+    )
     # Place all of our decisions together into a single list
     routes = [
         check_balance,
@@ -239,7 +255,8 @@ def setup_route_layer():
         redirect_agent,
         chitchat,
         end_conversation,
-        bank_info
+        bank_info,
+        transaction_analysis
     ]
 
     # Initialize and return the RouteLayer

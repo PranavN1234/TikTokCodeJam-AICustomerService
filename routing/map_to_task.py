@@ -14,7 +14,8 @@ from tasks.handle_bank_info import get_bank_info
 from flask_socketio import emit
 from audio_data import AudioData
 from utils import synthesize_audio
-
+from tasks.transaction_analysis import perform_transaction_analysis
+from ai_service import analyze_transaction
 audio_data = AudioData()
 
 def prompt_for_confirmation(prompt_text):
@@ -92,6 +93,13 @@ def map_to_route(user_query, connection):
             emit('tts_audio', {'audio': tts_audio, 'prompt': chitchat_response})
         case "bank_info":
             get_bank_info(user_query)
+        case "transaction_analysis":
+
+            synthesize_audio("Great! Let me analyze some of your recent transactions for you!!")
+            with open("output.mp3", "rb") as audio_file:
+                tts_audio = audio_file.read()
+            emit('tts_audio', {'audio': tts_audio, 'prompt': 'Great! Let me analyze some of your recent transactions for you!!', 'response': 'no_response'})
+            perform_transaction_analysis(connection)
         case _:
             emit('error', {'message': "Something went wrong"})
 

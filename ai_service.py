@@ -64,3 +64,24 @@ def ai_response_with_context(user_query, chunks):
     print(response.choices[0].message.content)
 
     return response.choices[0].message.content
+
+def analyze_transaction(transactions, categories):
+    prompt = "Analyze the following transactions and provide insights:\n\n"
+    for transaction in transactions:
+        prompt += f"Transaction ID: {transaction['t_id']}, Amount: {transaction['amount']}, Category: {transaction['category']}\n"
+
+    prompt += "\nCategories summary:\n"
+    for category, amount in categories.items():
+        prompt += f"{category}: {amount}\n"
+
+    prompt += "\nPlease provide insights and suggestions based on the above transactions in under 50 words to me keeping the core message intact."
+
+    response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+      {"role": "system", "content": "You are an AI assistant for a bank and you will be presented with information"},
+      {"role": "user", "content": f"{prompt}"},
+    ]
+  )
+    return response.choices[0].message.content
+    

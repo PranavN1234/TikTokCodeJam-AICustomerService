@@ -16,6 +16,7 @@ from tasks.block_card import handle_block_card_selection
 from tasks.flag_transaction import handle_transaction_id_response, handle_flag_reason_response
 from tasks.request_new_card import handle_card_type_selection
 from tasks.change_information import handle_change_info_selection, handle_new_value_selection
+from tasks.transaction_analysis import perform_transaction_analysis
 
 
 # Load the .env file

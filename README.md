@@ -95,5 +95,23 @@ CRM Banking Assistant is a Customer Relationship Management (CRM) tool designed 
     ```
 
 ## Contributors
-- [Pranav Iyer](github.com/PranavN1234)
-- [Purvav Punyani](github.com/Purvav0511)
+<table>
+	<tbody>
+		<tr>
+         <td align="center">
+             <a href="https://github.com/PranavN1234">
+                 <img src="https://avatars.githubusercontent.com/u/44135759?v=4" width="100;" alt="Pranav"/>
+                 <br />
+                 <sub >Pranav Iyer</sub>
+             </a>
+         </td>
+         <td align="center">
+             <a href="https://github.com/Purvav0511">
+                 <img src="https://avatars.githubusercontent.com/u/50676996?v=4" width="100;" alt="Purvav"/>
+                 <br />
+                 <sub>Purvav Punyani</sub>
+             </a>
+         </td>
+		</tr>
+	<tbody>
+</table>

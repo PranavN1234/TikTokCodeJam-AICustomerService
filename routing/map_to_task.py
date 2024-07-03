@@ -35,7 +35,7 @@ def handle_confirmation_response(response_text, connection):
         synthesize_audio("Confirmation not received. Please try again.")
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
-        emit('tts_audio', {'audio': tts_audio, 'prompt': "Confirmation not received. Please try again."})
+        emit('tts_audio', {'audio': tts_audio, 'prompt': "Confirmation not received. Is there anything else I can help you with."})
         return
 
 def process_confirmed_action(connection):
@@ -58,10 +58,13 @@ def map_to_route(user_query, connection):
     user_data = UserData()
     audio_data.set_data('pending_task', task)
     audio_data.set_data('user_query', user_query)
+    
+    task_completed = False
+    
     match task:
         case "check_balance":
-            if prompt_for_confirmation("Do you want to check your balance?"):
                 check_user_balance(connection)
+                task_completed = True
         case "change_information":
             prompt_for_confirmation("Do you want to change your information?")
         case "block_card":
@@ -90,9 +93,14 @@ def map_to_route(user_query, connection):
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()
             emit('tts_audio', {'audio': tts_audio, 'prompt': chitchat_response})
+            task_completed = True
         case "bank_info":
             get_bank_info(user_query)
+            task_completed = True
         case _:
             emit('error', {'message': "Something went wrong"})
+            task_completed = True
 
     user_data.add_recent_query(user_query)
+    
+    return task_completed

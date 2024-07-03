@@ -7,6 +7,7 @@ import random
 import datetime
 from flask_socketio import emit
 from audio_data import AudioData
+import logging
 
 audio_data = AudioData()
 
@@ -23,51 +24,73 @@ def generate_pin():
     return ''.join([str(random.randint(0, 9)) for _ in range(4)])
 
 def prompt_for_card_type_initial(connection):
-    synthesize_audio("Would you like a credit card or a debit card?")
-    with open("output.mp3", "rb") as audio_file:
-        tts_audio = audio_file.read()
-    emit('tts_audio', {'audio': tts_audio, 'prompt': "Would you like a credit card or a debit card?", 'tag': 'card_type_selection'})
-
-def handle_card_type_selection(response_text, connection):
-    card_type_route_layer = setup_card_type_route_layer()
-    route = card_type_route_layer(response_text)
-    card_type = route.name if route else None
-
-    if card_type:
-        issue_new_card(connection, card_type)
-    else:
-        synthesize_audio("Card type not recognized. Please try again.")
+    try:
+        synthesize_audio("Would you like a credit card or a debit card?")
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
-        emit('tts_audio', {'audio': tts_audio, 'prompt': "Card type not recognized. Please try again.", 'tag': 'card_type_selection'})
+        emit('tts_audio', {'audio': tts_audio, 'prompt': "Would you like a credit card or a debit card?", 'tag': 'card_type_selection'})
+    except Exception as e:
+        logging.error(f"Error in prompt_for_card_type_initial: {str(e)}")
+        synthesize_audio("Sorry, I am unable to process your request at the moment. Please try again later.")
+        with open("output.mp3", "rb") as audio_file:
+            tts_audio = audio_file.read()
+        emit('tts_audio', {'audio': tts_audio, 'prompt': "Sorry, I am unable to process your request at the moment. Please try again later.", 'response': 'no_response'})
+        
+def handle_card_type_selection(response_text, connection):
+    try:
+        card_type_route_layer = setup_card_type_route_layer()
+        route = card_type_route_layer(response_text)
+        card_type = route.name if route else None
 
+        if card_type:
+            issue_new_card(connection, card_type)
+        else:
+            synthesize_audio("Card type not recognized. Please try again.")
+            with open("output.mp3", "rb") as audio_file:
+                tts_audio = audio_file.read()
+            emit('tts_audio', {'audio': tts_audio, 'prompt': "Card type not recognized. Please try again.", 'tag': 'card_type_selection', 'response': 'no_response'})
+    except Exception as e:
+        logging.error(f"Error in handle_card_type_selection: {str(e)}")
+        synthesize_audio("Sorry, I am unable to process your request at the moment. Please try again later.")
+        with open("output.mp3", "rb") as audio_file:
+            tts_audio = audio_file.read()
+        emit('tts_audio', {'audio': tts_audio, 'prompt': "Sorry, I am unable to process your request at the moment. Please try again later.", 'response': 'no_response'})
+        
 def issue_new_card(connection, card_type):
-    if not connection:
+    try:
+        if not connection:
+            response = "Sorry, we are unable to process your request at the moment. Please try again later."
+            synthesize_audio(response)
+            with open("output.mp3", "rb") as audio_file:
+                tts_audio = audio_file.read()
+            emit('tts_audio', {'audio': tts_audio, 'prompt': response, 'response': 'no_response'})
+            return response
+
+        user_data = UserData()
+        customer_id = user_data.get_data("customer_id")
+        card_number = generate_card_number()
+        cvv = generate_cvv()
+        pin = generate_pin()
+        expiry_date = datetime.date.today().replace(year=datetime.date.today().year + 5)  # 5 years from today
+        
+        cursor = connection.cursor(dictionary=True)
+        query = """
+        UPDATE pba_card
+        SET card_number = %s, cvv = %s, pin = %s, expiry_date = %s, flagged = 0
+        WHERE customerid = %s AND card_type = %s AND flagged = 1
+        """
+        cursor.execute(query, (card_number, cvv, pin, expiry_date, customer_id, card_type))
+        connection.commit()
+
+        response = f"A new {card_type} card has been issued to your account. You should receive it in 5-7 business days."
+        synthesize_audio(response)
+        with open("output.mp3", "rb") as audio_file:
+            tts_audio = audio_file.read()
+        emit('tts_audio', {'audio': tts_audio, 'prompt': response, 'response': 'no_response'})
+    except Exception as e:
+        logging.error(f"Error in issue_new_card: {str(e)}")
         response = "Sorry, we are unable to process your request at the moment. Please try again later."
         synthesize_audio(response)
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
-        emit('tts_audio', {'audio': tts_audio, 'prompt': response})
-        return response
-
-    user_data = UserData()
-    customer_id = user_data.get_data("customer_id")
-    card_number = generate_card_number()
-    cvv = generate_cvv()
-    pin = generate_pin()
-    expiry_date = datetime.date.today().replace(year=datetime.date.today().year + 5)  # 5 years from today
-    
-    cursor = connection.cursor(dictionary=True)
-    query = """
-    UPDATE pba_card
-    SET card_number = %s, cvv = %s, pin = %s, expiry_date = %s, flagged = 0
-    WHERE customerid = %s AND card_type = %s AND flagged = 1
-    """
-    cursor.execute(query, (card_number, cvv, pin, expiry_date, customer_id, card_type))
-    connection.commit()
-
-    response = f"A new {card_type} card has been issued to your account. You should receive it in 5-7 business days."
-    synthesize_audio(response)
-    with open("output.mp3", "rb") as audio_file:
-        tts_audio = audio_file.read()
-    emit('tts_audio', {'audio': tts_audio, 'prompt': response})
+        emit('tts_audio', {'audio': tts_audio, 'prompt': response, 'response': 'no_response'})

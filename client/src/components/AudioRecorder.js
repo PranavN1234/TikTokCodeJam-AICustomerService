@@ -7,6 +7,8 @@ const AudioRecorder = () => {
   const [prompt, setPrompt] = useState("");
   const currentTagRef = useRef(null);
   const socket = useContext(SocketContext);
+  const audioQueueRef = useRef([]); // Queue to hold audio files
+  const isPlayingRef = useRef(false); // Track if audio is currently playing
 
   useEffect(() => {
     if (socket) {
@@ -16,9 +18,11 @@ const AudioRecorder = () => {
           currentTagRef.current = data.tag;
           console.log('Tag received:', data.tag);
         }
-        playAudio(data.audio).then(() => {
-          startRecording();
-        });
+        if (data.categories) {
+          console.log(data.categories);
+        }
+        audioQueueRef.current.push(data.audio); // Add the new audio to the queue
+        playNextAudio(); // Attempt to play the next audio in the queue
       });
 
       return () => {
@@ -43,7 +47,7 @@ const AudioRecorder = () => {
       reader.onloadend = () => {
         console.log('tag emitted', currentTagRef.current);
         socket.emit('audio_response', { audio: reader.result, tag: currentTagRef.current });
-        currentTagRef.current = null; 
+        currentTagRef.current = null;
       };
     };
 
@@ -53,7 +57,24 @@ const AudioRecorder = () => {
     setTimeout(() => {
       mediaRecorder.stop();
       setRecording(false);
-    }, 5000); 
+    }, 5000);
+  };
+
+  const playNextAudio = () => {
+    if (!isPlayingRef.current && audioQueueRef.current.length > 0) {
+      const audioData = audioQueueRef.current.shift(); // Get the next audio from the queue
+      isPlayingRef.current = true; // Mark audio as playing
+      playAudio(audioData).then(() => {
+        isPlayingRef.current = false; // Mark audio as not playing
+        if (audioQueueRef.current.length > 0) {
+          playNextAudio(); // Play the next audio if there's more in the queue
+        } else {
+          if (!currentTagRef.current || currentTagRef.current !== 'no_response') {
+            startRecording();
+          }
+        }
+      });
+    }
   };
 
   const playAudio = (audioData) => {

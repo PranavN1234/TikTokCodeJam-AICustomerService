@@ -1,5 +1,6 @@
 from user_data import UserData
-from utils import synthesize_audio, play_audio
+from utils import synthesize_audio
+from flask_socketio import emit
 
 def check_user_balance(connection):
     """
@@ -48,8 +49,11 @@ def check_user_balance(connection):
         return response
 
     balance = result["balance"]
-    response = f"The current balance in your ${account_type} account is ${balance:.2f}"
+    response = f"The current balance in your {account_type} account is ${balance:.2f}"
     synthesize_audio(response)
+    with open("output.mp3", "rb") as audio_file:
+        tts_audio = audio_file.read()
+    emit('tts_audio', {'audio': tts_audio, 'prompt': response, 'response': 'no_response'})
     # play_audio('output.mp3')
         
 

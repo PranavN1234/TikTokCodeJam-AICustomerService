@@ -1,0 +1,9 @@
+pydub
+pyaudio
+flask
+flask-cors
+flask-socketio
+pinecone
+ffmpeg
+SpeechRecognition
+mysql-connector-python

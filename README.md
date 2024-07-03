@@ -37,12 +37,14 @@ CRM Banking Assistant is a Customer Relationship Management (CRM) tool designed 
    npm install --legacy-peer-deps
    ```
 3. **Set up environment variables**
+```
     DB_HOST=your_db_host
     DB_USER=your_db_user
     DB_PASSWORD=your_db_password
     DB_DATABASE=your_db_name
     OPENAI_API_KEY=your_openai_api_key
     PINECONE_KEY=your_pinecone_key
+```
 
 4. **Run the application**
    ```bash

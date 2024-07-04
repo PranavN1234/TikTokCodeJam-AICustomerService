@@ -62,7 +62,7 @@ def handle_block_card_selection(response_text, connection):
             synthesize_audio("Card type not found or invalid.")
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()
-            emit('tts_audio', {'audio': tts_audio, 'prompt': "Card type not found or invalid.", 'tag': 'block_card_selection', 'response': 'no_response'})
+            emit('tts_audio', {'audio': tts_audio, 'prompt': "Card type not found or invalid.", 'response': 'no_response'})
             return
         
         if selected_card['flagged'] == 1:

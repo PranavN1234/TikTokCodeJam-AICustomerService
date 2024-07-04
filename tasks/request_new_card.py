@@ -45,10 +45,10 @@ def handle_card_type_selection(response_text, connection):
         if card_type:
             issue_new_card(connection, card_type)
         else:
-            synthesize_audio("Card type not recognized. Please try again.")
+            synthesize_audio("Card type not recognized. Please try again from the top.")
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()
-            emit('tts_audio', {'audio': tts_audio, 'prompt': "Card type not recognized. Please try again.", 'tag': 'card_type_selection', 'response': 'no_response'})
+            emit('tts_audio', {'audio': tts_audio, 'prompt': "Card type not recognized. Please try again from the top.", 'response': 'no_response'})
     except Exception as e:
         logging.error(f"Error in handle_card_type_selection: {str(e)}")
         synthesize_audio("Sorry, I am unable to process your request at the moment. Please try again later.")

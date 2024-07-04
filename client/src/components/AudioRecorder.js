@@ -13,6 +13,7 @@ const AudioRecorder = () => {
   useEffect(() => {
     if (socket) {
       socket.on('tts_audio', (data) => {
+        console.log('Audio received:', data.prompt)
         setPrompt(data.prompt);
         if (data.tag) {
           currentTagRef.current = data.tag;

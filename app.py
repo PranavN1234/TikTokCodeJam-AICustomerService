@@ -17,6 +17,7 @@ from tasks.flag_transaction import handle_transaction_id_response, handle_flag_r
 from tasks.request_new_card import handle_card_type_selection
 from tasks.change_information import handle_change_info_selection, handle_new_value_selection
 from tasks.transaction_analysis import perform_transaction_analysis
+from modified_prompting import modify_prompt
 
 
 # Load the .env file
@@ -66,19 +67,19 @@ def start_interaction():
 
         auth_steps = [
             {
-                "prompt": "Please can you tell me your account number.",
+                "prompt": modify_prompt("Please can you tell me your account number.", "The user just called a banking customer relation service, modify the prompt to be as humanly as possible to ask the user their account number."),
                 "variable": "account_number",
                 "semantic_description": "Extract only account number as integer no spaces or special characters.",
                 "auth_function": "authenticate_account_number"
             },
             {
-                "prompt": "Please state your first and last name.",
+                "prompt": modify_prompt("Please state your first and last name.", "Modify the prompt to be as humanly as possible to ask the user their name."),
                 "variable": "name",
                 "semantic_description": "Extract the name from the user query in english just the name no special formatting needed.",
                 "auth_function": "authenticate_name"
             },
             {
-                "prompt": "Please say your date of birth",
+                "prompt": modify_prompt("Please say your date of birth", "Modify the prompt to be as humanly as possible to ask the user their date of birth."),
                 "variable": "dob",
                 "semantic_description": "Extract the date of birth from the user response in YYYY-MM-DD.",
                 "auth_function": "authenticate_dob"
@@ -95,6 +96,14 @@ def start_interaction():
         user_data = auth_manager.user_data
         current_step_index = 0
         authenticated = False
+        
+        introduction = "Thank you for calling Premier Trust bank. To proceed, I need to verify your identity. Please answer the following questions."
+        new_prompt = modify_prompt(introduction, "The user just called a banking customer relation service, be cheerful and welcoming to the user as humanly as possible for the first prompt.")
+        # synthesize_audio(new_prompt.value)
+        # with open("output.mp3", "rb") as audio_file:
+        #     tts_audio = audio_file.read()
+        # emit('tts_audio', {'audio': tts_audio, 'prompt': new_prompt, 'final': False, 'response': 'no_response'})
+        send_prompt(new_prompt)
 
         next_step = auth_steps[current_step_index]
         send_prompt(next_step["prompt"])
@@ -135,7 +144,8 @@ def handle_audio_response(data):
                     else:
                         user_data.set_data("authenticated", True)
                         authenticated = True
-                        send_prompt("Authentication successful. Welcome to Premier Trust Bank. I am Jessica your AI Assistant. How can I assist you today?")
+                        customer_name = user_data.get_data("name")
+                        send_prompt(modify_prompt(f"Authentication successful. Welcome to Premier Trust Bank. I am Jessica your AI Assistant. How can I assist you today?", f"The user has successfully authenticated, be cheerful and welcoming to the user as humanly as possible for the first prompt. The user's name is ${customer_name}"))
                 else:
                     send_prompt(f"Authentication failed for {next_step['variable'].replace('_', ' ')}. Please try again.")
             else:

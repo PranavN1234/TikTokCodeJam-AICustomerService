@@ -87,7 +87,7 @@ def handle_new_value_selection(response_text, connection):
             zip_code = get_value(full_address, "zip", "Extract the zip code from the user-provided address.").value
             state = get_value(full_address, "state", "Extract the state from the user-provided address in a 2 letter code like NY, MN, CA etc.").value
             if not all([street, city, zip_code, state]):
-                synthesize_audio("Invalid address format. Please provide the full address including street, city, state, and zip code.")
+                synthesize_audio("Invalid address format. please try again from the start.")
                 with open("output.mp3", "rb") as audio_file:
                     tts_audio = audio_file.read()
                 emit('tts_audio', {'audio': tts_audio, 'prompt': "Invalid address format, please try again from the start.", 'response': 'no_response'})

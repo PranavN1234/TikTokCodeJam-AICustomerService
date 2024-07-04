@@ -16,6 +16,7 @@ from audio_data import AudioData
 from utils import synthesize_audio
 from tasks.transaction_analysis import perform_transaction_analysis
 from ai_service import analyze_transaction
+from modified_prompting import modify_prompt
 audio_data = AudioData()
 
 def prompt_for_confirmation(prompt_text):
@@ -69,7 +70,9 @@ def map_to_route(user_query, connection):
         case "change_information":
             prompt_for_confirmation("Do you want to change your information?")
         case "block_card":
-            prompt_for_confirmation("So it seems like you wanna block your card, do you wanna proceed with it?")   
+            prompt = "So it seems like you wanna block your card, do you wanna proceed with it?"
+            modified_prompt = modify_prompt(prompt, "The AI is confirming with the user if they want to block their card. Make the prompt more conversational and human like.")
+            prompt_for_confirmation(modified_prompt)   
         case "issue_new_card":
             prompt_for_confirmation("So you want to issue a new card, do you want to proceed?")
         case "flag_fraud":
@@ -87,7 +90,7 @@ def map_to_route(user_query, connection):
             synthesize_audio("Thank you for using our service. Goodbye!")
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()
-            emit('tts_audio', {'audio': tts_audio, 'prompt': "Thank you for using our service. Goodbye!", 'final': True})
+            emit('tts_audio', {'audio': tts_audio, 'prompt': "Thank you for using our service. Goodbye!", 'final': True, 'response': 'no_response'})
         case "chitchat":
             chitchat_response = ai_response(user_query)
             synthesize_audio(chitchat_response)

@@ -44,17 +44,17 @@ function App() {
 
   return (
     <div className="App">
-      <h1>AI Customer Service Assistant</h1>
-      {!buttonStatus ? (
-        <button onClick={handleClick}>Turn Chat On</button>
-      ) : (
-        <>
-          <button onClick={handleClick}>Turn Chat Off</button>
-          <SocketContext.Provider value={socketInstance}>
-            <AudioRecorder />
-          </SocketContext.Provider>
-        </>
-      )}
+      <header className="App-header">
+        <h1>AI Customer Service Assistant</h1>
+        <button onClick={handleClick}>{buttonStatus ? 'Turn Chat Off' : 'Turn Chat On'}</button>
+      </header>
+      <div className="content">
+      <div className="main-content">
+        <SocketContext.Provider value={socketInstance}>
+          <AudioRecorder />
+        </SocketContext.Provider>
+      </div>
+      </div>
     </div>
   );
 }

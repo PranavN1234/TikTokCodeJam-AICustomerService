@@ -1,30 +1,29 @@
 .App {
-    text-align: center;
-  }
-  
-  .App-header {
-    background-color: #282c34;
-    min-height: 10vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
-  }
-  
-  .App main {
-    padding: 20px;
-  }
-  
-  .sound-wave {
-    margin: 20px auto;
-  }
-  
-  button {
-    margin: 10px;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-  }
-  
+  text-align: center;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.App-header {
+  padding: 20px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: 20px;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  width: 80%; /* Adjust as needed */
+}
+
+.additional-content {
+  flex: 1;
+  margin-left: 20px;
+}

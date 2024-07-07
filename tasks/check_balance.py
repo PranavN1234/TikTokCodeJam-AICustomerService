@@ -1,5 +1,5 @@
 from user_data import UserData
-from utils import synthesize_audio
+from utils import synthesize_audio, log_conversation
 from flask_socketio import emit
 
 def check_user_balance(connection):
@@ -8,6 +8,7 @@ def check_user_balance(connection):
     """
     if not connection:
         response =  "Sorry, we are unable to process your request at the moment. Please try again later."
+        log_conversation("AI", response)
         synthesize_audio(response)
         # play_audio('output.mp3')
         return response
@@ -21,6 +22,7 @@ def check_user_balance(connection):
     
     if not account_info:
         response = "Sorry, we could not find your account information. Please try again later."
+        log_conversation("AI", response)
         synthesize_audio(response)
         # play_audio('output.mp3')
         return response
@@ -35,6 +37,7 @@ def check_user_balance(connection):
         query = "SELECT loan_amount FROM pba_loan WHERE acct_no = %s"
     else:
         response = "Invalid account type found. Please contact customer support."
+        log_conversation("AI", response)
         synthesize_audio(response)
         # play_audio('output.mp3')
         return response
@@ -44,12 +47,14 @@ def check_user_balance(connection):
     
     if not result:
         response = "Sorry, we could not find your account information. Please try again later."
+        log_conversation("AI", response)
         synthesize_audio(response)
         # play_audio('output.mp3')
         return response
 
     balance = result["balance"]
     response = f"The current balance in your {account_type} account is ${balance:.2f}"
+    log_conversation("AI", response)
     synthesize_audio(response)
     with open("output.mp3", "rb") as audio_file:
         tts_audio = audio_file.read()

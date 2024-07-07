@@ -11,6 +11,7 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
   const [prompt, setPrompt] = useState("");
   const [authStatus, setAuthStatus] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("Additional information");
+  const [fadeInClass, setFadeInClass] = useState("");
   const currentTagRef = useRef(null);
   const socket = useContext(SocketContext);
   const audioQueueRef = useRef([]); // Queue to hold audio files
@@ -38,11 +39,18 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
 
       socket.on('user_data', (data) => {
         setAdditionalInfo(data.message);
+        setFadeInClass('fade-in');
+      });
+
+      socket.on('authentication-complete', () => {
+        setAdditionalInfo("Additional information");
+        setFadeInClass('fade-in');
       });
 
       return () => {
         socket.off('tts_audio');
         socket.off('user_data');
+        socket.off('authentication-complete');
       };
     }
   }, [socket, setButtonStatus]);
@@ -139,7 +147,6 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
       promptQueueRef.current = [];
       isPlayingRef.current = false;
       currentTagRef.current = null;
-      setAdditionalInfo("Additional information");
     }
   }, [buttonStatus]);
 
@@ -171,7 +178,7 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
         </div>
         <div className="additional-info-container">
           <div className="additional-info-box">
-            <p>{additionalInfo}</p>
+            <p className={`additional-info-text ${fadeInClass}`}>{additionalInfo}</p>
           </div>
         </div>
       </div>

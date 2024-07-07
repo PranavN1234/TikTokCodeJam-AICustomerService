@@ -2,6 +2,7 @@ from utils import calculate_similarity, transcribe_audio, synthesize_audio, play
 from value_extractor import get_value
 from datetime import datetime
 from user_data import UserData
+from flask_socketio import emit
 
 class Authmanager:
     _instance = None
@@ -43,6 +44,7 @@ class Authmanager:
             self.user_data.set_data("customer_id", account["customerid"])
             self.fetch_security_question()
             self.set_security_question_prompt()  # Ensure the prompt is set here
+            emit('user_data', {'message': f'Account number authenticated: {account_number}'})
             return True
         return False
 
@@ -70,6 +72,7 @@ class Authmanager:
         mapped_name = f"{customer['cfname']} {customer['clname']}"
         if self.are_strings_similar(name, mapped_name):
             self.user_data.set_data("name", mapped_name)
+            emit('user_data', {'message': f'Name authenticated: {mapped_name}'})
             return True
         
         return False
@@ -92,6 +95,7 @@ class Authmanager:
                 dob_input = datetime.strptime(dob, '%Y-%m-%d').date()
                 if dob_input == dob_database:
                     self.user_data.set_data("dob", dob)
+                    emit('user_data', {'message': f'Date of Birth authenticated: {dob}'})
                     return True
             except ValueError:
                 print("Invalid date format provided.")
@@ -105,6 +109,7 @@ class Authmanager:
         
         if self.are_strings_similar(security_answer, self.user_data.get_data("expected_security_answer"), 0.5):
             self.user_data.set_data("security_answer", security_answer)
+            emit('user_data', {'message': f'Security answer authenticated: {security_answer}'})
             return True
         
         return False

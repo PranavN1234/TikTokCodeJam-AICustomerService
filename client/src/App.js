@@ -49,11 +49,11 @@ function App() {
         <button onClick={handleClick}>{buttonStatus ? 'Turn Chat Off' : 'Turn Chat On'}</button>
       </header>
       <div className="content">
-      <div className="main-content">
-        <SocketContext.Provider value={socketInstance}>
-          <AudioRecorder />
-        </SocketContext.Provider>
-      </div>
+        <div className="main-content">
+          <SocketContext.Provider value={socketInstance}>
+            <AudioRecorder buttonStatus={buttonStatus} setButtonStatus={setButtonStatus} />
+          </SocketContext.Provider>
+        </div>
       </div>
     </div>
   );

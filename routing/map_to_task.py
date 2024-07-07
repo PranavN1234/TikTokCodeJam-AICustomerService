@@ -90,7 +90,7 @@ def map_to_route(user_query, connection):
             synthesize_audio("Thank you for using our service. Goodbye!")
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()
-            emit('tts_audio', {'audio': tts_audio, 'prompt': "Thank you for using our service. Goodbye!", 'final': True, 'response': 'no_response'})
+            emit('tts_audio', {'audio': tts_audio, 'prompt': "Thank you for using our service. Goodbye!",'response': 'no_response', 'final': True})
         case "chitchat":
             chitchat_response = ai_response(user_query)
             synthesize_audio(chitchat_response)

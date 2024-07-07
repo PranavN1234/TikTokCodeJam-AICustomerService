@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from utils import synthesize_audio, play_audio
 from user_data import UserData
 from ai_service import get_embedding, ai_response_with_context
+from flask_socketio import emit
 
 load_dotenv()
 PINECONE_API_KEY = os.getenv("PINECONE_KEY")
@@ -37,7 +38,11 @@ def get_bank_info(user_query):
     if results:
         response = ai_response_with_context(user_query, results)
         synthesize_audio(response)
-        # play_audio('output.mp3')
+        with open("output.mp3", "rb") as audio_file:
+            tts_audio = audio_file.read()
+        emit('tts_audio', {'audio': tts_audio, 'prompt': response, 'response': 'no_response'})
     else:
         synthesize_audio("Sorry, I couldn't find any relevant information.")
-        # play_audio('output.mp3')
+        with open("output.mp3", "rb") as audio_file:
+            tts_audio = audio_file.read()
+        emit('tts_audio', {'audio': tts_audio, 'prompt': response, 'response': 'no_response'})

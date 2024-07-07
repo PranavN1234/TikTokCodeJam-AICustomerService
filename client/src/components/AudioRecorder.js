@@ -2,13 +2,15 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import { SocketContext } from '../App';
 import Avatar from '@mui/material/Avatar';
 import './AudioRecorder.css'; // Import the CSS file for styling
-import jessicaImage from './jessica.webp'; // Ensure the path to your image is correct
+import jessicaImage from '../assets/jessica.webp'; // Ensure the path to your image is correct
 import { Typewriter } from 'react-simple-typewriter';
-import beepaudio from './beep.mp3';
+import beepaudio from '../assets/beep.mp3';
 
-const AudioRecorder = () => {
+const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
   const [recording, setRecording] = useState(false);
   const [prompt, setPrompt] = useState("");
+  const [authStatus, setAuthStatus] = useState("");
+  const [additionalInfo, setAdditionalInfo] = useState("Additional information");
   const currentTagRef = useRef(null);
   const socket = useContext(SocketContext);
   const audioQueueRef = useRef([]); // Queue to hold audio files
@@ -28,15 +30,28 @@ const AudioRecorder = () => {
         promptQueueRef.current.push(data.prompt);
         audioQueueRef.current.push(data.audio); // Add the new audio to the queue
         playNextAudio(); // Attempt to play the next audio in the queue
+
+        if (data.final) {
+          setButtonStatus(false);
+        }
+      });
+
+      socket.on('user_data', (data) => {
+        setAdditionalInfo(data.message);
       });
 
       return () => {
         socket.off('tts_audio');
+        socket.off('user_data');
       };
     }
-  }, [socket]);
+  }, [socket, setButtonStatus]);
+
+      
 
   const startRecording = async () => {
+    if (!buttonStatus) return; // Do not start recording if buttonStatus is false
+
     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
     let audioChunks = [];
@@ -78,7 +93,7 @@ const AudioRecorder = () => {
         if (audioQueueRef.current.length > 0) {
           playNextAudio(); // Play the next audio if there's more in the queue
         } else {
-          if (!currentTagRef.current || currentTagRef.current !== 'no_response') {
+          if (buttonStatus && (!currentTagRef.current || currentTagRef.current !== 'no_response')) {
             playBeep().then(() => startRecording());
           }
         }
@@ -115,6 +130,19 @@ const AudioRecorder = () => {
     }
   }, [recording]);
 
+  // Add useEffect to handle the stopping of recording when buttonStatus is false
+  useEffect(() => {
+    if (!buttonStatus) {
+      // If the button status is off, stop recording and clear queues
+      setRecording(false);
+      audioQueueRef.current = [];
+      promptQueueRef.current = [];
+      isPlayingRef.current = false;
+      currentTagRef.current = null;
+      setAdditionalInfo("Additional information");
+    }
+  }, [buttonStatus]);
+
   return (
     <div>
       <div className="audio-recorder">
@@ -143,7 +171,7 @@ const AudioRecorder = () => {
         </div>
         <div className="additional-info-container">
           <div className="additional-info-box">
-            <p>Additional information</p>
+            <p>{additionalInfo}</p>
           </div>
         </div>
       </div>

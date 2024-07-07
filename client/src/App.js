@@ -2,8 +2,32 @@ import React, { useEffect, useState, createContext } from 'react';
 import { io } from 'socket.io-client';
 import AudioRecorder from './components/AudioRecorder';
 import './App.css'; // Import the CSS file for styling
+import { IconButton } from '@mui/material';
+import CallIcon from '@mui/icons-material/Call';
+import CallEndIcon from '@mui/icons-material/CallEnd';
+import { styled } from '@mui/material/styles';
 
 export const SocketContext = createContext();
+
+const GreenCallButton = styled(IconButton)({
+  backgroundColor: 'green',
+  color: 'white',
+  '&:hover': {
+    backgroundColor: 'darkgreen',
+  },
+  borderRadius: '50%',
+  padding: '10px',
+});
+
+const RedCallEndButton = styled(IconButton)({
+  backgroundColor: 'red',
+  color: 'white',
+  '&:hover': {
+    backgroundColor: 'darkred',
+  },
+  borderRadius: '50%',
+  padding: '10px',
+});
 
 function App() {
   const [socketInstance, setSocketInstance] = useState(null);
@@ -46,7 +70,15 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>AI Customer Service Assistant</h1>
-        <button onClick={handleClick}>{buttonStatus ? 'Turn Chat Off' : 'Turn Chat On'}</button>
+        {buttonStatus ? (
+          <RedCallEndButton onClick={handleClick}>
+            <CallEndIcon />
+          </RedCallEndButton>
+        ) : (
+          <GreenCallButton onClick={handleClick}>
+            <CallIcon />
+          </GreenCallButton>
+        )}
       </header>
       <div className="content">
         <div className="main-content">

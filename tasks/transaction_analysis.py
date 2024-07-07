@@ -1,7 +1,7 @@
 from collections import defaultdict
 from user_data import UserData
 from ai_service import analyze_transaction
-from utils import synthesize_audio
+from utils import synthesize_audio, log_conversation
 from flask_socketio import emit
 
 def fetch_and_categorize_transactions(connection, account_number):
@@ -27,7 +27,7 @@ def perform_transaction_analysis(connection):
     account_number = user_data.get_data('account_number')
     transactions, categories = fetch_and_categorize_transactions(connection, account_number)
     analysis = analyze_transaction(transactions, categories)
-
+    log_conversation("AI", analysis)
     # Synthesize the analysis text to audio
     synthesize_audio(analysis)
     with open("output.mp3", "rb") as audio_file:

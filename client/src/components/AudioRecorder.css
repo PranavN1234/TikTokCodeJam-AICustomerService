@@ -71,7 +71,7 @@
 }
 
 .additional-info-box {
-  background-color: #e0e0e0;
+  background-color: #f5f5f5; /* Light grey background */
   padding: 20px;
   border-radius: 10px;
   width: 90%; /* Adjust the width as necessary */
@@ -82,4 +82,22 @@
   align-items: center; /* Center align the text vertically */
   font-size: 20px; /* Adjust the text size */
   color: #333; /* Adjust the text color */
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.additional-info-text {
+  animation-duration: 1s;
+  animation-fill-mode: forwards;
+}
+
+.fade-in {
+  animation-name: fadeIn;
 }

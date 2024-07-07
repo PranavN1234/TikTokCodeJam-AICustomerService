@@ -2,7 +2,7 @@ from utils import synthesize_audio, play_audio, transcribe_audio
 from routing.card_routing_layer import setup_card_type_route_layer
 from db_connection import db_connection, close_db_connection
 from user_data import UserData
-from utils import synthesize_audio, play_audio
+from utils import synthesize_audio, log_conversation
 import random
 import datetime
 from flask_socketio import emit
@@ -26,12 +26,14 @@ def generate_pin():
 def prompt_for_card_type_initial(connection):
     try:
         synthesize_audio("Would you like a credit card or a debit card?")
+        log_conversation("AI", "Would you like a credit card or a debit card?")
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
         emit('tts_audio', {'audio': tts_audio, 'prompt': "Would you like a credit card or a debit card?", 'tag': 'card_type_selection'})
     except Exception as e:
         logging.error(f"Error in prompt_for_card_type_initial: {str(e)}")
         synthesize_audio("Sorry, I am unable to process your request at the moment. Please try again later.")
+        log_conversation("AI", "Sorry, I am unable to process your request at the moment. Please try again later.")
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
         emit('tts_audio', {'audio': tts_audio, 'prompt': "Sorry, I am unable to process your request at the moment. Please try again later.", 'response': 'no_response'})
@@ -46,12 +48,14 @@ def handle_card_type_selection(response_text, connection):
             issue_new_card(connection, card_type)
         else:
             synthesize_audio("Card type not recognized. Please try again from the top.")
+            log_conversation("AI", "Card type not recognized. Please try again from the top.")
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()
             emit('tts_audio', {'audio': tts_audio, 'prompt': "Card type not recognized. Please try again from the top.", 'response': 'no_response'})
     except Exception as e:
         logging.error(f"Error in handle_card_type_selection: {str(e)}")
         synthesize_audio("Sorry, I am unable to process your request at the moment. Please try again later.")
+        log_conversation("AI", "Sorry, I am unable to process your request at the moment. Please try again later.")
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
         emit('tts_audio', {'audio': tts_audio, 'prompt': "Sorry, I am unable to process your request at the moment. Please try again later.", 'response': 'no_response'})
@@ -60,6 +64,7 @@ def issue_new_card(connection, card_type):
     try:
         if not connection:
             response = "Sorry, we are unable to process your request at the moment. Please try again later."
+            log_conversation("AI", response)
             synthesize_audio(response)
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()
@@ -83,6 +88,7 @@ def issue_new_card(connection, card_type):
         connection.commit()
 
         response = f"A new {card_type} card has been issued to your account. You should receive it in 5-7 business days."
+        log_conversation("AI", response)
         synthesize_audio(response)
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
@@ -90,6 +96,7 @@ def issue_new_card(connection, card_type):
     except Exception as e:
         logging.error(f"Error in issue_new_card: {str(e)}")
         response = "Sorry, we are unable to process your request at the moment. Please try again later."
+        log_conversation("AI", response)
         synthesize_audio(response)
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()

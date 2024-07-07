@@ -69,7 +69,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>AI Customer Service Assistant</h1>
+        <h1>AI Bank Sales Service Assistant</h1>
         {buttonStatus ? (
           <RedCallEndButton onClick={handleClick}>
             <CallEndIcon />

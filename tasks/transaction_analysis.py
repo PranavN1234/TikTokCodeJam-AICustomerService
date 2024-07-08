@@ -34,4 +34,4 @@ def perform_transaction_analysis(connection):
         tts_audio = audio_file.read()
 
     # Emit the audio response along with the analysis and categories
-    emit('tts_audio', {'audio': tts_audio, 'prompt': analysis, 'categories': dict(categories)})
+    emit('tts_audio', {'audio': tts_audio, 'prompt': analysis, 'categories': dict(categories), 'response': 'no_response'})

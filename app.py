@@ -43,7 +43,7 @@ audio_data = AudioData()
 def index():
     return "Server is running"
 
-def send_prompt(prompt_text, final=False):
+def send_prompt(prompt_text, final=False, clear_image = False):
     if not prompt_text:
         emit('error', {'message': 'Prompt text cannot be empty.'})
         return
@@ -52,7 +52,7 @@ def send_prompt(prompt_text, final=False):
         synthesize_audio(prompt_text)
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
-        emit('tts_audio', {'audio': tts_audio, 'prompt': prompt_text, 'final': final})
+        emit('tts_audio', {'audio': tts_audio, 'prompt': prompt_text, 'final': final, 'clear_input': clear_image})
     except Exception as e:
         emit('error', {'message': f"Failed to send prompt: {str(e)}"})
 
@@ -173,7 +173,7 @@ def handle_audio_response(data):
             else:
                 task_completed = map_to_route(response_text, connection)
             if task_completed:
-                send_prompt("Is there anything else I can help you with?")
+                send_prompt("Is there anything else I can help you with?", clear_image=True)
     except Exception as e:
         emit('error', {'message': f"Failed to handle audio response: {str(e)}"})
 

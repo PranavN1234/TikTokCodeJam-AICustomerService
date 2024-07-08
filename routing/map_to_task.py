@@ -8,6 +8,7 @@ from tasks.flag_transaction import handle_general_dispute, handle_transaction_id
 from tasks.request_new_card import prompt_for_card_type_initial
 from tasks.flag_transaction import handle_general_dispute
 from tasks.check_balance import check_user_balance
+from tasks.upgrade_eligibility import check_upgrade_eligibility
 from ai_service import ai_response
 from user_data import UserData
 from tasks.handle_bank_info import get_bank_info
@@ -45,15 +46,23 @@ def process_confirmed_action(connection):
     pending_task = audio_data.get_data('pending_task')
     # Handle the confirmed action here
     if pending_task == "block_card":
+        emit('add-input', {'image': 'Block_Card.webp', 'loadingText': 'Blocking card'})
         block_card_initial_prompt(connection)
     elif pending_task == "flag_general_dispute":
+        emit('add-input', {'image': 'fraudulant_transaction.webp', 'loadingText': 'Flagging Transaction'})
         handle_general_dispute(connection)
     elif pending_task == "flag_specific_transaction":
+        emit('add-input', {'image': 'fraudulant_transaction.webp', 'loadingText': 'Flagging Transaction'})
         handle_transaction_id_response(connection, audio_data.get_data('user_query'))
     elif audio_data.get_data('pending_task') == "issue_new_card":
+        emit('add-input', {'image': 'Issue_New_card.webp', 'loadingText': 'Issuing new card'})
         prompt_for_card_type_initial(connection)
     elif audio_data.get_data('pending_task') == "change_information":
+        emit('add-input', {'image': 'Change_Information.webp', 'loadingText': 'Changing Information'})
         change_information_initial_prompt(connection)
+    elif audio_data.get_data('pending_task') == "request_card_upgrade":
+        emit('add-input', {'loadingText': 'Checking Card Upgrade Eligibility'})
+        check_upgrade_eligibility(connection)
 
 def map_to_route(user_query, connection):
     task = route_task(user_query)
@@ -67,6 +76,10 @@ def map_to_route(user_query, connection):
         case "check_balance":
                 check_user_balance(connection)
                 task_completed = True
+        case "request_card_upgrade":
+                prompt = "Hmm so it is a Credit card upgrade you are looking for, lets proceed with it?"
+                modified_prompt = modify_prompt(prompt, "The user is looking to upgrade his credit card, Make the prompt conversation human like and ask him if they'd like to proceed with it")
+                prompt_for_confirmation(modified_prompt)
         case "change_information":
             prompt_for_confirmation("Do you want to change your information?")
         case "block_card":

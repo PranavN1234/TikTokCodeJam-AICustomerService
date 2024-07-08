@@ -2,9 +2,18 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import { SocketContext } from '../App';
 import Avatar from '@mui/material/Avatar';
 import './AudioRecorder.css'; // Import the CSS file for styling
-import jessicaImage from '../assets/jessica.webp'; // Ensure the path to your image is correct
+import jessicaImage from './jessica.webp'; // Ensure the path to your image is correct
+import blockCardImage from '../assets/Block_Card.webp'; // Path to your images
+import changeInfoImage from '../assets/Change_Information.webp';
+import issueNewCardImage from '../assets/Issue_New_card.webp';
+import flagFraudImage from '../assets/fraudulant_transaction.webp';
+import bankInfoImage from '../assets/bank_information.webp';
+import chitchatImage from '../assets/chitchat.webp';
 import { Typewriter } from 'react-simple-typewriter';
-import beepaudio from '../assets/beep.mp3';
+import { BallTriangle } from 'react-loader-spinner';
+import beepaudio from './beep.mp3';
+import PieChartComponent from './PieChartComponent';
+
 
 const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
   const [recording, setRecording] = useState(false);
@@ -17,6 +26,13 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
   const audioQueueRef = useRef([]); // Queue to hold audio files
   const promptQueueRef = useRef([]);
   const isPlayingRef = useRef(false); // Track if audio is currently playing
+  const [loadingText, setLoadingText] = useState("");
+  const [showLoader, setShowLoader] = useState(false);
+  const [currentImage, setCurrentImage] = useState(null);
+  const [creditLimit, setCreditLimit] = useState(null);
+  const [interestRate, setInterestRate] = useState(null);
+  const silenceTimeoutRef = useRef(null);
+  const [categories, setCategories] = useState(null); 
 
   useEffect(() => {
     if (socket) {
@@ -25,8 +41,21 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
           currentTagRef.current = data.tag;
           console.log('Tag received:', data.tag);
         }
+        if (data.clear_input) {
+          setShowLoader(false);
+          setLoadingText("");
+          setCurrentImage(null);
+          setCreditLimit(null);
+          setInterestRate(null);
+        }
+        if (data.credit_limit && data.interest_rate) {
+          setShowLoader(false);
+          setCreditLimit(data.credit_limit);
+          setInterestRate(data.interest_rate);
+        }
         if (data.categories) {
           console.log(data.categories);
+          setCategories(data.categories); // Set the categories data
         }
         promptQueueRef.current.push(data.prompt);
         audioQueueRef.current.push(data.audio); // Add the new audio to the queue
@@ -47,10 +76,20 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
         setFadeInClass('fade-in');
       });
 
+      socket.on('add-input', (data) => {
+        setShowLoader(true);
+        setLoadingText(data.loadingText);
+        if(data.image){
+          setCurrentImage(data.image);
+        }
+      });
+
       return () => {
         socket.off('tts_audio');
+        socket.off('add-input');
         socket.off('user_data');
         socket.off('authentication-complete');
+
       };
     }
   }, [socket, setButtonStatus]);
@@ -62,7 +101,40 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
 
     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const input = audioContext.createMediaStreamSource(audioStream);
+    const analyser = audioContext.createAnalyser();
+    input.connect(analyser);
+    analyser.fftSize = 2048;
+    const bufferLength = analyser.fftSize;
+    const dataArray = new Uint8Array(bufferLength);
     let audioChunks = [];
+    let silenceStart = null;
+    const silenceThreshold = 2; // Silence threshold in seconds
+
+    const checkForSilence = () => {
+      analyser.getByteTimeDomainData(dataArray);
+      let isSilent = true;
+      for (let i = 0; i < bufferLength; i++) {
+        if (dataArray[i] > 128 + 5 || dataArray[i] < 128 - 5) {
+          isSilent = false;
+          break;
+        }
+      }
+      if (isSilent) {
+        if (silenceStart === null) {
+          silenceStart = Date.now();
+        } else {
+          const silenceDuration = (Date.now() - silenceStart) / 1000;
+          if (silenceDuration >= silenceThreshold) {
+            mediaRecorder.stop();
+            clearInterval(silenceTimeoutRef.current);
+          }
+        }
+      } else {
+        silenceStart = null;
+      }
+    };
 
     mediaRecorder.ondataavailable = (event) => {
       audioChunks.push(event.data);
@@ -82,10 +154,7 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
     mediaRecorder.start();
     setRecording(true);
 
-    setTimeout(() => {
-      mediaRecorder.stop();
-      setRecording(false);
-    }, 5000);
+    silenceTimeoutRef.current = setInterval(checkForSilence, 200); // Check for silence every 200ms
   };
 
   const playNextAudio = () => {
@@ -138,6 +207,26 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
     }
   }, [recording]);
 
+
+  const getImage = (imageName) => {
+    switch(imageName) {
+      case 'block-card.webp':
+        return blockCardImage;
+      case 'change-information.webp':
+        return changeInfoImage;
+      case 'issue-new-card.webp':
+        return issueNewCardImage;
+      case 'flag-fraud.webp':
+        return flagFraudImage;
+      case 'bank-info.webp':
+        return bankInfoImage;
+      case 'chitchat.webp':
+        return chitchatImage;
+      default:
+        return null;
+    }
+  };
+
   // Add useEffect to handle the stopping of recording when buttonStatus is false
   useEffect(() => {
     if (!buttonStatus) {
@@ -149,6 +238,7 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
       currentTagRef.current = null;
     }
   }, [buttonStatus]);
+
 
   return (
     <div>
@@ -170,16 +260,38 @@ const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
               loop={false}
               cursor
               cursorStyle='|'
-              typeSpeed={70} // Adjusted typeSpeed for faster typing
+              typeSpeed={100} // Adjusted typeSpeed for faster typing
               deleteSpeed={50}
               delaySpeed={1000} // Adjusted delaySpeed for faster response
             />
           </div>
         </div>
         <div className="additional-info-container">
+
+          {showLoader ? (
+            <div className="additional-info-box">
+              {currentImage && <img src={getImage(currentImage)} alt="Current Task" style={{ width: '100%', height: 'auto' }} />}
+              <BallTriangle color="#00BFFF" height={80} width={80} />
+              <p>{loadingText}</p>
+            </div>
+          ) : creditLimit && interestRate ? (
+            <div className="additional-info-box">
+              <p>Credit Limit: {creditLimit}</p>
+              <p>Interest Rate: {interestRate}%</p>
+            </div>
+          ) : categories ? (
+            <div className="additional-info-box pie-chart-container">
+              <PieChartComponent data={categories} />
+            </div>     
+          ) : (
+            <div className="additional-info-box">
+              <p>Additional information</p>
+            </div>
+          )}
           <div className="additional-info-box">
             <p className={`additional-info-text ${fadeInClass}`}>{additionalInfo}</p>
           </div>
+
         </div>
       </div>
     </div>

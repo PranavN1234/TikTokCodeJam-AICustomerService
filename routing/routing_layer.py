@@ -245,6 +245,24 @@ def setup_route_layer():
             "What are my top spending categories?",
         ],
     )
+
+    request_card_upgrade = Route(
+    name="request_card_upgrade",
+    utterances=[
+        "I want to upgrade my credit card",
+        "How can I get a better credit card?",
+        "I would like to request a card upgrade",
+        "Can I upgrade my credit card?",
+        "What are the requirements for a card upgrade?",
+        "I need a higher-tier credit card",
+        "Upgrade my credit card",
+        "I want a premium credit card",
+        "Help me get a better credit card",
+        "How do I qualify for a card upgrade?",
+        "Am I eligibile for a better card",
+        "Do you reckon I could get a card upgrade?"
+    ],
+)
     # Place all of our decisions together into a single list
     routes = [
         check_balance,
@@ -256,7 +274,8 @@ def setup_route_layer():
         chitchat,
         end_conversation,
         bank_info,
-        transaction_analysis
+        transaction_analysis,
+        request_card_upgrade
     ]
 
     # Initialize and return the RouteLayer

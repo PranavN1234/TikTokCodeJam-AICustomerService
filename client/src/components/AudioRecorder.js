@@ -14,9 +14,13 @@ import { BallTriangle } from 'react-loader-spinner';
 import beepaudio from './beep.mp3';
 import PieChartComponent from './PieChartComponent';
 
-const AudioRecorder = () => {
+
+const AudioRecorder = ({ buttonStatus, setButtonStatus }) => {
   const [recording, setRecording] = useState(false);
   const [prompt, setPrompt] = useState("");
+  const [authStatus, setAuthStatus] = useState("");
+  const [additionalInfo, setAdditionalInfo] = useState("Additional information");
+  const [fadeInClass, setFadeInClass] = useState("");
   const currentTagRef = useRef(null);
   const socket = useContext(SocketContext);
   const audioQueueRef = useRef([]); // Queue to hold audio files
@@ -56,6 +60,20 @@ const AudioRecorder = () => {
         promptQueueRef.current.push(data.prompt);
         audioQueueRef.current.push(data.audio); // Add the new audio to the queue
         playNextAudio(); // Attempt to play the next audio in the queue
+
+        if (data.final) {
+          setButtonStatus(false);
+        }
+      });
+
+      socket.on('user_data', (data) => {
+        setAdditionalInfo(data.message);
+        setFadeInClass('fade-in');
+      });
+
+      socket.on('authentication-complete', () => {
+        setAdditionalInfo("Additional information");
+        setFadeInClass('fade-in');
       });
 
       socket.on('add-input', (data) => {
@@ -69,11 +87,18 @@ const AudioRecorder = () => {
       return () => {
         socket.off('tts_audio');
         socket.off('add-input');
+        socket.off('user_data');
+        socket.off('authentication-complete');
+
       };
     }
-  }, [socket]);
+  }, [socket, setButtonStatus]);
+
+      
 
   const startRecording = async () => {
+    if (!buttonStatus) return; // Do not start recording if buttonStatus is false
+
     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -145,7 +170,7 @@ const AudioRecorder = () => {
         if (audioQueueRef.current.length > 0) {
           playNextAudio(); // Play the next audio if there's more in the queue
         } else {
-          if (!currentTagRef.current || currentTagRef.current !== 'no_response') {
+          if (buttonStatus && (!currentTagRef.current || currentTagRef.current !== 'no_response')) {
             playBeep().then(() => startRecording());
           }
         }
@@ -182,6 +207,7 @@ const AudioRecorder = () => {
     }
   }, [recording]);
 
+
   const getImage = (imageName) => {
     switch(imageName) {
       case 'block-card.webp':
@@ -200,6 +226,19 @@ const AudioRecorder = () => {
         return null;
     }
   };
+
+  // Add useEffect to handle the stopping of recording when buttonStatus is false
+  useEffect(() => {
+    if (!buttonStatus) {
+      // If the button status is off, stop recording and clear queues
+      setRecording(false);
+      audioQueueRef.current = [];
+      promptQueueRef.current = [];
+      isPlayingRef.current = false;
+      currentTagRef.current = null;
+    }
+  }, [buttonStatus]);
+
 
   return (
     <div>
@@ -228,6 +267,7 @@ const AudioRecorder = () => {
           </div>
         </div>
         <div className="additional-info-container">
+
           {showLoader ? (
             <div className="additional-info-box">
               {currentImage && <img src={getImage(currentImage)} alt="Current Task" style={{ width: '100%', height: 'auto' }} />}
@@ -248,6 +288,10 @@ const AudioRecorder = () => {
               <p>Additional information</p>
             </div>
           )}
+          <div className="additional-info-box">
+            <p className={`additional-info-text ${fadeInClass}`}>{additionalInfo}</p>
+          </div>
+
         </div>
       </div>
     </div>

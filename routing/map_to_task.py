@@ -14,13 +14,14 @@ from user_data import UserData
 from tasks.handle_bank_info import get_bank_info
 from flask_socketio import emit
 from audio_data import AudioData
-from utils import synthesize_audio
+from utils import synthesize_audio, log_conversation, save_conversation
 from tasks.transaction_analysis import perform_transaction_analysis
 from ai_service import analyze_transaction
 from modified_prompting import modify_prompt
 audio_data = AudioData()
 
 def prompt_for_confirmation(prompt_text):
+    log_conversation("AI", prompt_text)
     synthesize_audio(prompt_text)
     with open("output.mp3", "rb") as audio_file:
         tts_audio = audio_file.read()
@@ -35,6 +36,7 @@ def handle_confirmation_response(response_text, connection):
         # Process the confirmed action
         process_confirmed_action(connection)
     else:
+        log_conversation("AI", "Confirmation not received. Please try again.")
         synthesize_audio("Confirmation not received. Please try again.")
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
@@ -100,12 +102,18 @@ def map_to_route(user_query, connection):
         case "redirect_agent":
             emit('prompt', {'message': "Redirecting to a live agent..."})
         case "end_conversation":
+            log_conversation("AI", "Thank you for using our service. Goodbye!")
             synthesize_audio("Thank you for using our service. Goodbye!")
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()
-            emit('tts_audio', {'audio': tts_audio, 'prompt': "Thank you for using our service. Goodbye!", 'final': True, 'response': 'no_response'})
+            emit('tts_audio', {'audio': tts_audio, 'prompt': "Thank you for using our service. Goodbye!",'response': 'no_response', 'final': True})
+            customer_id = user_data.get_data("customer_id")
+            conversation = save_conversation(connection, customer_id)
+            
+            print(conversation)
         case "chitchat":
             chitchat_response = ai_response(user_query)
+            log_conversation("AI", chitchat_response)
             synthesize_audio(chitchat_response)
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()
@@ -115,6 +123,7 @@ def map_to_route(user_query, connection):
             get_bank_info(user_query)
             task_completed = True
         case "transaction_analysis":
+            log_conversation("AI", "Great! Let me analyze some of your recent transactions for you!!")
             synthesize_audio("Great! Let me analyze some of your recent transactions for you!!")
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()

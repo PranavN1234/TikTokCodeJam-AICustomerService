@@ -7,7 +7,7 @@ from pydub import AudioSegment
 from pydub.utils import which
 from dotenv import load_dotenv
 from routing.map_to_task import map_to_route, handle_confirmation_response
-from utils import transcribe_audio, synthesize_audio
+from utils import transcribe_audio, synthesize_audio, log_conversation
 from db_connection import db_connection, close_db_connection
 from auth_manager import Authmanager
 from user_data import UserData
@@ -52,7 +52,9 @@ def send_prompt(prompt_text, final=False, clear_image = False):
         synthesize_audio(prompt_text)
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
+
         emit('tts_audio', {'audio': tts_audio, 'prompt': prompt_text, 'final': final, 'clear_input': clear_image})
+        log_conversation("AI", prompt_text)
     except Exception as e:
         emit('error', {'message': f"Failed to send prompt: {str(e)}"})
 
@@ -64,7 +66,7 @@ def start_interaction():
         if not connection:
             emit('error', {'message': 'Failed to connect to the database. Please try again later.'})
             return
-
+        # log_conversation("system", "Call started")
         auth_steps = [
             {
                 "prompt": modify_prompt("Please can you tell me your account number.", "The user just called a banking customer relation service, modify the prompt to be as humanly as possible to ask the user their account number."),
@@ -122,6 +124,7 @@ def handle_audio_response(data):
         audio_segment.export("response_audio.wav", format="wav")
 
         response_text = transcribe_audio('response_audio.wav')
+        log_conversation("User", response_text)
         audio_data.set_data('transcribed_text', response_text)
         print(f"Transcribed text: {response_text}")
         
@@ -145,7 +148,9 @@ def handle_audio_response(data):
                         user_data.set_data("authenticated", True)
                         authenticated = True
                         customer_name = user_data.get_data("name")
-                        send_prompt(modify_prompt(f"Authentication successful. Welcome to Premier Trust Bank. I am Jessica your AI Assistant. How can I assist you today?", f"The user has successfully authenticated, be cheerful and welcoming to the user as humanly as possible for the first prompt. The user's name is ${customer_name}"))
+                        next_prompt = modify_prompt(f"Authentication successful. Welcome to Premier Trust Bank. I am Jessica your AI Assistant. How can I assist you today?", f"The user has successfully authenticated, be cheerful and welcoming to the user as humanly as possible for the first prompt. The user's name is ${customer_name}")
+                        send_prompt(next_prompt)
+                        emit('add-input', {'info': 'Authentication complete!'})
                 else:
                     send_prompt(f"Authentication failed for {next_step['variable'].replace('_', ' ')}. Please try again.")
             else:
@@ -175,10 +180,12 @@ def handle_audio_response(data):
             if task_completed:
                 send_prompt("Is there anything else I can help you with?", clear_image=True)
     except Exception as e:
+        log_conversation("AI", f"Failed to handle audio response: {str(e)}")
         emit('error', {'message': f"Failed to handle audio response: {str(e)}"})
 
 if __name__ == '__main__':
     try:
         socketio.run(app, port=5001, debug=True)
     except Exception as e:
+        log_conversation("AI", f"Failed to start the application: {str(e)}")
         print(f"Failed to start the application: {str(e)}")

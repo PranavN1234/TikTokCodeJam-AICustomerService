@@ -3,7 +3,12 @@ import pygame
 import time
 import openai
 from difflib import SequenceMatcher
+from datetime import datetime
+from ai_summerizer import get_summary
+from user_data import UserData
+from db_connection import db_connection
 
+conversation_log = []  # Global variable to store the conversation log
 
 def calculate_similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
@@ -54,3 +59,36 @@ def prompt_and_listen(prompt_text):
     play_audio('output.mp3')
     record_audio('response.wav')
     return transcribe_audio('response.wav')
+
+def log_conversation(role, text):
+    global conversation_log
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    conversation_log.append(f"{timestamp} - {role}: {text}")
+    print(f"Logged conversation: {timestamp} - {role}: {text}")
+
+def summarize_call(call_data):
+    ai_summerizer = get_summary(call_data)
+    summary_1 = ai_summerizer.summary
+    tasks_1 = ai_summerizer.tasks
+    print(f"Summary: {summary_1}")
+    print(f"Tasks: {tasks_1}")
+    return [summary_1, tasks_1]
+
+def save_conversation(connection, customer_id):
+    global conversation_log
+    call_data = "\n".join(conversation_log)
+    try:
+        if not connection:
+            return None
+        else:
+            summerized_call = summarize_call(call_data)
+            cursor = connection.cursor()
+            cursor.execute("INSERT INTO pba_call_details (customer_id, call_summary, tasks_performed) VALUES (%s, %s, %s)", (customer_id, summerized_call[0], summerized_call[1]))
+            connection.commit()
+            print("Call details stored successfully.")
+        conversation_log = []
+    
+    except Exception as e:
+        print(f"An error occurred while saving conversation: {e}")
+        return None
+    

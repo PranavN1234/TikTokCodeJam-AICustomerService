@@ -1,5 +1,5 @@
 from routing.change_info_routing_layer import setup_change_info_route_layer
-from utils import synthesize_audio
+from utils import synthesize_audio, log_conversation
 from user_data import UserData
 from value_extractor import get_value
 from flask_socketio import emit
@@ -10,12 +10,14 @@ audio_data = AudioData()
 
 def change_information_initial_prompt(connection):
     try:
-        synthesize_audio("What information would you like to change on your account? Your options are address or email.")
+        log_conversation("AI", "What information would you like to change on your account? Your options are address or email?")
+        synthesize_audio("What information would you like to change on your account? Your options are address or email?")
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
-        emit('tts_audio', {'audio': tts_audio, 'prompt': "What information would you like to change on your account? Your options are address or email.", 'tag': 'change_info_selection'})
+        emit('tts_audio', {'audio': tts_audio, 'prompt': "What information would you like to change on your account? Your options are address or email?", 'tag': 'change_info_selection'})
     except Exception as e:
         logging.error(f"Error in change_information_initial_prompt: {str(e)}")
+        log_conversation("AI", "An error occurred while processing your request. Please try again later.")
         synthesize_audio("An error occurred while processing your request. Please try again later.")
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
@@ -32,12 +34,14 @@ def handle_change_info_selection(response_text, connection):
         elif route.name == "change_address":
             change_information(connection, "address")
         else:
+            log_conversation("AI", "Sorry, it is not possible to change this information through this service. Please make an appointment on the website.")
             synthesize_audio("Sorry, it is not possible to change this information through this service. Please make an appointment on the website.")
             with open("output.mp3", "rb") as audio_file:
                 tts_audio = audio_file.read()
             emit('tts_audio', {'audio': tts_audio, 'prompt': "Sorry, it is not possible to change this information through this service. Please make an appointment on the website.", 'response': 'no_response'})
     except Exception as e:
         logging.error(f"Error in handle_change_info_selection: {str(e)}")
+        log_conversation("AI", "An error occurred while processing your request. Please try again later.")
         synthesize_audio("An error occurred while processing your request. Please try again later.")
         with open("output.mp3", "rb") as audio_file:
             tts_audio = audio_file.read()
@@ -87,6 +91,7 @@ def handle_new_value_selection(response_text, connection):
             zip_code = get_value(full_address, "zip", "Extract the zip code from the user-provided address.").value
             state = get_value(full_address, "state", "Extract the state from the user-provided address in a 2 letter code like NY, MN, CA etc.").value
             if not all([street, city, zip_code, state]):
+                
                 synthesize_audio("Invalid address format. please try again from the start.")
                 with open("output.mp3", "rb") as audio_file:
                     tts_audio = audio_file.read()
